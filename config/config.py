@@ -4,7 +4,7 @@ from config.ExtendInfo import create_extend_info
 from config.UciMapping import BOARD_SIZE, POLICY_OUT_CHANNEL, UciMapping
 
 # Multiprocess
-NUM_WORKERS = 1
+NUM_WORKERS = 24
 MIN_EVALUATE_COUNT = 16
 
 # Pretrain

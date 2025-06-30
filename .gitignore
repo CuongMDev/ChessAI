@@ -5,6 +5,8 @@ __pycache__/
 
 ChessEnv/
 
-saved_model/chess_checkpoint.pth
+saved_model/*
+!saved_model/.gitkeep
 
-Syzygy/
+Syzygy/*
+!Syzygy/.gitkeep
