@@ -1,0 +1,82 @@
+import torch
+
+from config.ExtendInfo import create_extend_info
+from config.UciMapping import BOARD_SIZE, POLICY_OUT_CHANNEL, UciMapping
+
+# Multiprocess
+NUM_WORKERS = 1
+MIN_EVALUATE_COUNT = 16
+
+# Pretrain
+PRETRAIN_FILE = 'pretrain_data/pretrain.pgn'
+OPENING_FILE = 'pretrain_data/opening.pgn'
+PRETRAIN_GAME_ITERATION = 500
+PRETRAIN_MIN_VALUE_MOVE_NUMBER = 10
+PRETRAIN_EPOCHS = 1
+LABEL_SMOOTHING = 0.4
+
+# Model
+INFO_SIZE = 5
+EXTEND_INFO = create_extend_info()
+FILTER_CHANNEL = 256
+FILTER_SIZE = 3
+RES_LAYER_NUM = 7
+SE_CHANNELS = 32
+VALUE_FC_SIZE = 256
+EPOCHS = 1
+VALIDATION_SPLIT = 0.02
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+MODEL_DTYPE = torch.float
+
+# MCTS
+BATCH_SIZE = 256
+GAME_TRAIN_STEP = 500
+MAX_THINK_LOOP = 1
+KLD_THRESHOLD = 0.1
+EXP_MIN = 10000
+EXP_MAX = 100000
+RESIGN_THRESHOLD = -0.8
+MIN_RESIGN_TURN = 5
+WIN_UPDATE_PERCENT = 0.55
+FPU_VALUE_AT_ROOT = 1
+SMART_PRUNING_FACTOR = 1.33
+
+ROOT_EXPLORATION_WEIGHT = 1.9
+
+TEMPERATURE = 0.9
+TEMPERATURE_DELAY = 20
+TEMPERATURE_DECAY_MOVE = 60
+TEMPERATURE_ENDGAME = 0.3
+TEMPERATURE_DECAY = TEMPERATURE / TEMPERATURE_DECAY_MOVE # linear
+TEMPERATURE_VISIT_OFFSET = -0.8
+GAME_EVALUATE = 50
+
+# Dirichlet noise
+DIRICHLET_ALPHA = 0.12
+DIRICHLET_EPSILON = 0.1
+
+SAVE_MODEL_PATH = 'saved_model/'
+MODEL_NAME = 'chess_checkpoint.pth'
+TABLEBASE_PATH = "Syzygy/"
+
+# Tablebase
+TABLEBASE_BOOST_DTZ_EPSILON = 0.2
+
+# Optimizer
+LEARNING_RATE = 0.04
+MOMENTUM = 0.9
+L2_CONST = 1e-4
+DECAY_RATE = [1, 0.1, 1, 0.1, 1]
+DECAY_STEP = [60, 61, 120, 121]
+DECAY_INTERVAL = 1
+LOSE_WEIGHTS = [1.0, 1.0] # policy, value
+
+# Environment
+EPISODE = 1000000
+PIECES_ORDER = '.KQRBNPkqrbnpE' # . must in 0, E: has ep
+
+# Socket
+host = '127.0.0.1'
+port = 12345
+
+LABELS_MAP = UciMapping()
