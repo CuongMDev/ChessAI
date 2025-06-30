@@ -1,0 +1,10 @@
+
+__pycache__/
+
+.idea/
+
+ChessEnv/
+
+saved_model/chess_checkpoint.pth
+
+Syzygy/
