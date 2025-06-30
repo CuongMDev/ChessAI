@@ -1,7 +1,7 @@
 import torch
 
-from config.ExtendInfo import create_extend_info
-from config.UciMapping import BOARD_SIZE, POLICY_OUT_CHANNEL, UciMapping
+from Env.ExtendInfo import create_extend_info
+from Env.UciMapping import UciMapping, BOARD_SIZE, POLICY_OUT_CHANNEL
 
 # Multiprocess
 NUM_WORKERS = 24

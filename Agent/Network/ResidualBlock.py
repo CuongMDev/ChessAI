@@ -1,7 +1,7 @@
 from torch import nn
 import torch.nn.functional as F
 
-from Agent.SELayer import SELayer
+from Agent.Network.SELayer import SELayer
 from config.config import FILTER_CHANNEL, FILTER_SIZE
 
 

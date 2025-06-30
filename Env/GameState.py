@@ -3,7 +3,7 @@ import chess
 import chess.syzygy
 from chess import STARTING_FEN
 
-from config.UciMapping import get_dict_value
+from Env.UciMapping import get_dict_value
 from config.config import PIECES_ORDER, BOARD_SIZE, LABELS_MAP, TABLEBASE_PATH, TABLEBASE_BOOST_DTZ_EPSILON
 
 TABLEBASE = chess.syzygy.open_tablebase(TABLEBASE_PATH)

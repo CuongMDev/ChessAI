@@ -1,6 +1,6 @@
 import math
 
-from GameState import GameState
+from Env.GameState import GameState
 from MonteCarloTreeSearch.NodeInformation import NodeInformation
 
 
