@@ -1,7 +1,7 @@
-from GameState import GameState
+from Env.GameState import GameState
 from MonteCarloTreeSearch.MonteCarloNode import MonteCarloNode
 from config.ConfigManager import ConfigManager
-from ExperienceReplay import ExperienceReplay
+from Agent.ExperienceReplay import ExperienceReplay
 from MonteCarloTreeSearch.MonteCarloTreeSearch import MonteCarloTreeSearch
 from Agent.AgentMemories import AgentMemories
 from config.config import TEMPERATURE, GAME_EVALUATE, TEMPERATURE_ENDGAME, TEMPERATURE_DELAY, TEMPERATURE_DECAY

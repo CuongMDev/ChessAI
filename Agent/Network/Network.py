@@ -2,8 +2,8 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from Agent.ResidualBlock import ResidualBlock
-from config.UciMapping import POLICY_OUT_CHANNEL
+from Agent.Network.ResidualBlock import ResidualBlock
+from Env.UciMapping import POLICY_OUT_CHANNEL
 from config.config import BOARD_SIZE, PIECES_ORDER, FILTER_CHANNEL, VALUE_FC_SIZE, RES_LAYER_NUM, \
     INFO_SIZE, LABELS_MAP, FILTER_SIZE, EXTEND_INFO, MODEL_DTYPE
 

@@ -1,12 +1,10 @@
-import time
-
 import numpy as np
 import torch
 
 from Agent.AgentMemories import AgentMemories
 from Utils.Utils import compute_kld
 from config.ConfigManager import ConfigManager
-from GameState import GameState
+from Env.GameState import GameState
 from MonteCarloTreeSearch.MonteCarloNode import MonteCarloNode
 from config.config import DIRICHLET_ALPHA, DIRICHLET_EPSILON, LABELS_MAP, MAX_THINK_LOOP, \
     KLD_THRESHOLD, FPU_VALUE_AT_ROOT, TEMPERATURE_VISIT_OFFSET, SMART_PRUNING_FACTOR, ROOT_EXPLORATION_WEIGHT

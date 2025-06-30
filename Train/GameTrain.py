@@ -10,8 +10,8 @@ import numpy as np
 import torch
 
 from Agent.Agent import Agent
-from ExperienceReplay import ExperienceReplay
-from GameState import GameState
+from Agent.ExperienceReplay import ExperienceReplay
+from Env.GameState import GameState
 from TrainProcess import play_with_agent, train_with_self
 from config.config import EPISODE, GAME_EVALUATE, GAME_TRAIN_STEP, BATCH_SIZE, EPOCHS, WIN_UPDATE_PERCENT \
     , NUM_WORKERS, VALIDATION_SPLIT, PRETRAIN_FILE, PRETRAIN_GAME_ITERATION, PRETRAIN_EPOCHS, \

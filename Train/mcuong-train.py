@@ -1,6 +1,6 @@
 import multiprocessing
 
-from GameTrain import GameTrain
+from Train.GameTrain import GameTrain
 from config.config import EXP_MIN, DEVICE
 
 if __name__ == '__main__':

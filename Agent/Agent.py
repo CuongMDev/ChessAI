@@ -5,8 +5,8 @@ from threading import Thread, Event
 import torch
 from torch import optim, nn
 
-from CustomLearningRate import CustomLearningRateSchedule
-from Agent.Network import Network
+from Agent.CustomLearningRate import CustomLearningRateSchedule
+from Agent.Network.Network import Network
 from Agent.AgentMemories import AgentMemories
 from config.config import LEARNING_RATE, SAVE_MODEL_PATH, L2_CONST, DECAY_RATE, DECAY_STEP, DECAY_INTERVAL, \
     NUM_WORKERS, MIN_EVALUATE_COUNT, MODEL_NAME, BOARD_SIZE, INFO_SIZE, MODEL_DTYPE, MOMENTUM, LOSE_WEIGHTS
