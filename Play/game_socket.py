@@ -5,7 +5,7 @@ import sys
 import traceback
 from threading import Thread, Event
 
-from GamePlay import GamePlay
+from Play.GamePlay import GamePlay
 from config.config import host, port
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')  # Chỉnh output thành UTF-8
