@@ -12,10 +12,10 @@ import torch
 from Agent.Agent import Agent
 from Agent.ExperienceReplay import ExperienceReplay
 from Env.GameState import GameState
-from TrainProcess import play_with_agent, train_with_self
+from Train.TrainProcess import play_with_agent, train_with_self
 from config.config import EPISODE, GAME_EVALUATE, GAME_TRAIN_STEP, BATCH_SIZE, EPOCHS, WIN_UPDATE_PERCENT \
     , NUM_WORKERS, VALIDATION_SPLIT, PRETRAIN_FILE, PRETRAIN_GAME_ITERATION, PRETRAIN_EPOCHS, \
-    PRETRAIN_MIN_VALUE_MOVE_NUMBER, OPENING_FILE, DEVICE, LABEL_SMOOTHING, LABELS_MAP
+    PRETRAIN_MIN_VALUE_MOVE_NUMBER, OPENING_FILE, DEVICE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP
 
 
 class GameTrain:
@@ -25,6 +25,7 @@ class GameTrain:
         self.experience_replay = ExperienceReplay()
         self.device = device
 
+        self.time_not_update_model = 0
         self.pretrained = self.agent.load_checkpoint()
 
     def train_agent(self, batch_size: int, epochs: int, validation_split: float):
@@ -94,8 +95,16 @@ class GameTrain:
 
             self.agent.save_checkpoint()
             print('replaced network')
+
+            self.time_not_update_model = 0
         else:
             develop_agent.on_stop()
+            if win_rate < 0.5:
+                self.experience_replay.reset()
+
+            self.time_not_update_model += 1
+            if self.time_not_update_model % UPDATE_LR_STEP == 0:
+                self.agent.scheduler.step()
 
     def pretrain(self):
         print('-------pretrain-------')
@@ -153,6 +162,7 @@ class GameTrain:
 
         end_time = time.time()
         print(f"{end_time - start_time:.2f}s")
+        self.agent.scheduler.step()
         self.agent.save_checkpoint()
 
     def self_play_train(self):

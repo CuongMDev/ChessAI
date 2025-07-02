@@ -8,7 +8,7 @@ from torch import optim, nn
 from Agent.CustomLearningRate import CustomLearningRateSchedule
 from Agent.Network.Network import Network
 from Agent.AgentMemories import AgentMemories
-from config.config import LEARNING_RATE, SAVE_MODEL_PATH, L2_CONST, DECAY_RATE, DECAY_STEP, DECAY_INTERVAL, \
+from config.config import LEARNING_RATE, SAVE_MODEL_PATH, L2_CONST, DECAY_RATE, \
     NUM_WORKERS, MIN_EVALUATE_COUNT, MODEL_NAME, BOARD_SIZE, INFO_SIZE, MODEL_DTYPE, MOMENTUM, LOSE_WEIGHTS
 
 class Agent:
@@ -30,8 +30,6 @@ class Agent:
             optimizer=self.optimizer,
             initial_lr=LEARNING_RATE,
             decay_rates=DECAY_RATE,
-            decay_steps=DECAY_STEP,
-            lr_decay_interval=DECAY_INTERVAL
         )
         self.loss_policy = nn.CrossEntropyLoss()
         self.loss_value = nn.CrossEntropyLoss(ignore_index=3)
@@ -72,8 +70,6 @@ class Agent:
             if val_loader is not None:
                 val_epoch_loss = self.validate(val_loader)
                 val_loss.append(val_epoch_loss)
-
-        self.scheduler.step()
 
         return train_loss, val_loss  # Trả về giá trị loss cuối cùng (float)
 
