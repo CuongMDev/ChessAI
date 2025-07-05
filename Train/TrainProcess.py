@@ -1,10 +1,13 @@
+import random
+
 from Env.GameState import GameState
 from MonteCarloTreeSearch.MonteCarloNode import MonteCarloNode
 from config.ConfigManager import ConfigManager
 from Agent.ExperienceReplay import ExperienceReplay
 from MonteCarloTreeSearch.MonteCarloTreeSearch import MonteCarloTreeSearch
 from Agent.AgentMemories import AgentMemories
-from config.config import TEMPERATURE, GAME_EVALUATE, TEMPERATURE_ENDGAME, TEMPERATURE_DELAY, TEMPERATURE_DECAY
+from config.config import TEMPERATURE, GAME_EVALUATE, TEMPERATURE_ENDGAME, TEMPERATURE_DELAY, TEMPERATURE_DECAY, \
+    RESIGN_PERCENTAGE, RESIGN_PLAYTHROUGH
 
 
 def play_with_agent(agent_memory, develop_agent_memory, results, num_game, openings, worker=0):
@@ -89,9 +92,13 @@ def train_with_self(agent_memory, experience_memory, episode, worker=0):
         monte_carlo_tree = MonteCarloTreeSearch(agent_memories, config, worker, auto_claim_draw=True)
 
         while not done:
-            cache.append([monte_carlo_tree.root.state.get_train_board()])
-
             best_node, pi = monte_carlo_tree.search(temperature)
+
+            if monte_carlo_tree.root.value / monte_carlo_tree.root.visit * 100 <= -(100 - RESIGN_PERCENTAGE * 2) and random.randint(1, 100) > RESIGN_PLAYTHROUGH: # resign
+                result = -1
+                break
+
+            cache.append([monte_carlo_tree.root.state.get_train_board()])
             monte_carlo_tree.update_mcts_root(best_node)
             step_count += 1
 

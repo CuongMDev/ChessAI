@@ -14,6 +14,7 @@ class MonteCarloNode:
 
         self.children_info = None
         self.visit = 0
+        self.value = 0
         self.best_child_visit = 0
         self.id = id
 
@@ -43,6 +44,7 @@ class MonteCarloNode:
 
     def backpropagate(self, reward):
         self.visit += 1
+        self.value += reward
         if self.parent:
             self.parent.children_info.add(self.id, reward)
             self.parent.backpropagate(-reward)
