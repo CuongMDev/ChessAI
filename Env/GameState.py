@@ -165,5 +165,3 @@ class GameState:
             return self.result
 
         return self.result_tablebase
-
-

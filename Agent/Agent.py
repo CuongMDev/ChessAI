@@ -25,7 +25,7 @@ class Agent:
 
         self.elo = 0
 
-        self.optimizer = optim.SGD(self.network.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM, weight_decay=L2_CONST)
+        self.optimizer = optim.SGD(self.network.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM, weight_decay=L2_CONST, nesterov=True)
         self.scheduler = CustomLearningRateSchedule(
             optimizer=self.optimizer,
             initial_lr=LEARNING_RATE,
@@ -120,7 +120,7 @@ class Agent:
             self.example_inputs_size = (min(self.memories.num_current_worker.value, MIN_EVALUATE_COUNT), BOARD_SIZE, BOARD_SIZE + INFO_SIZE)
             self.network_jit = torch.jit.trace(
                 copy.deepcopy(self.network).to(MODEL_DTYPE),
-                example_inputs=torch.empty(self.example_inputs_size, dtype=MODEL_DTYPE, device=self.device)
+                example_inputs=torch.empty(self.example_inputs_size, dtype=torch.int32, device=self.device)
             )
         else:
             self.network_jit = torch.jit.script(copy.deepcopy(self.network).to(MODEL_DTYPE))
