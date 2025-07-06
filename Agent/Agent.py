@@ -9,7 +9,9 @@ from Agent.CustomLearningRate import CustomLearningRateSchedule
 from Agent.Network.Network import Network
 from Agent.AgentMemories import AgentMemories
 from config.config import LEARNING_RATE, SAVE_MODEL_PATH, L2_CONST, DECAY_RATE, \
-    NUM_WORKERS, MIN_EVALUATE_COUNT, MODEL_NAME, BOARD_SIZE, INFO_SIZE, MODEL_DTYPE, MOMENTUM, LOSE_WEIGHTS
+    NUM_WORKERS, MIN_EVALUATE_COUNT, MODEL_NAME, BOARD_SIZE, INFO_SIZE, MODEL_DTYPE, MOMENTUM, LOSE_WEIGHTS, \
+    MAX_GRAD_NORM
+
 
 class Agent:
     def __init__(self, device, num_worker=NUM_WORKERS, min_evaluate_count=MIN_EVALUATE_COUNT):
@@ -58,6 +60,8 @@ class Agent:
 
                 loss = self.get_loss(inp)
                 loss.backward()
+
+                torch.nn.utils.clip_grad_norm_(self.network.parameters(), MAX_GRAD_NORM)
 
                 total_loss += loss.item() * len(inp[0])
                 total_samples += len(inp[0])
@@ -120,7 +124,7 @@ class Agent:
             self.example_inputs_size = (min(self.memories.num_current_worker.value, MIN_EVALUATE_COUNT), BOARD_SIZE, BOARD_SIZE + INFO_SIZE)
             self.network_jit = torch.jit.trace(
                 copy.deepcopy(self.network).to(MODEL_DTYPE),
-                example_inputs=torch.empty(self.example_inputs_size, dtype=torch.int32, device=self.device)
+                example_inputs=torch.empty(self.example_inputs_size, dtype=torch.int32, device=self.device),
             )
         else:
             self.network_jit = torch.jit.script(copy.deepcopy(self.network).to(MODEL_DTYPE))
