@@ -5,14 +5,14 @@ import torch.nn.functional as F
 from Agent.Network.ResidualBlock import ResidualBlock
 from Env.UciMapping import POLICY_OUT_CHANNEL
 from config.config import BOARD_SIZE, PIECES_ORDER, FILTER_CHANNEL, VALUE_FC_SIZE, RES_LAYER_NUM, \
-    INFO_SIZE, LABELS_MAP, FILTER_SIZE, EXTEND_INFO, MODEL_DTYPE
+    INFO_SIZE, FILTER_SIZE, EXTEND_INFO, MODEL_DTYPE, UCI_LABELS_MAP
 
 
 class Network(nn.Module):
     def __init__(self):
         super(Network, self).__init__()
 
-        self.register_buffer('UCI_LABELS_MAP', torch.from_numpy(LABELS_MAP.create_uci_labels_mask()), persistent=False)
+        self.register_buffer('UCI_LABELS_MAP', torch.from_numpy(UCI_LABELS_MAP), persistent=False)
         self.register_buffer('EXTEND_INFO', torch.from_numpy(EXTEND_INFO), persistent=False)
 
         # common

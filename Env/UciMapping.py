@@ -3,13 +3,17 @@ from numba.typed import Dict
 from numba import types, njit, int32
 
 BOARD_SIZE = 8
-POLICY_OUT_CHANNEL = BOARD_SIZE * BOARD_SIZE + 12
+POLICY_OUT_CHANNEL = 80
 
 @njit
 def get_dict_value(dict, key):
     return dict[key]
 
 class UciMapping:
+    __rook_directions = [ (0, 1), (1, 0), (0, -1), (-1, 0) ]
+    __bishop_directions = [ (1, 1), (-1, 1), (1, -1), (-1, -1) ]
+    __knight_directions = [ (2, 1), (1, 2), (-1, 2), (-2, 1), (-2, -1), (-1, -2), (1, -2), (2, -1) ]
+
     __letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     __numbers = ['1', '2', '3', '4', '5', '6', '7', '8']
     __promoted_to = ['q', 'r', 'b', 'n']
@@ -36,11 +40,33 @@ class UciMapping:
         n2 = UciMapping.__numbers.index(uci[3])
         if len(uci) == 5:
             p = UciMapping.__promoted_to.index(uci[4])
-            n = BOARD_SIZE * BOARD_SIZE + p * 3 + l2 - l1 + 1
-        else:
-            n = l2 * BOARD_SIZE + n2
+            f = len(UciMapping.__rook_directions) * 7 + len(UciMapping.__bishop_directions) * 7 + len(UciMapping.__knight_directions) + p * 3 + l2 - l1 + 1
+        elif l1 == l2 or n1 == n2:
+            if l1 == l2:
+                dis = abs(n2 - n1)
+                dl = 0
+                dr = (n2 - n1) // dis
+            else:
+                dis = abs(l2 - l1)
+                dl = (l2 - l1) // dis
+                dr = 0
+            direction_index = UciMapping.__rook_directions.index((dl, dr))
+            f = direction_index * 7 + (dis - 1)
 
-        return n, l1, n1
+        elif abs(l2 - l1) == abs(n2 - n1):
+            dis = abs(l2 - l1)
+            dl = (l2 - l1) // dis
+            dr = (n2 - n1) // dis
+            direction_index = UciMapping.__bishop_directions.index((dl, dr))
+            f = len(UciMapping.__rook_directions) * 7 + direction_index * 7 + (dis - 1)
+
+        else:
+            dl = l2 - l1
+            dr = n2 - n1
+            f = len(UciMapping.__rook_directions) * 7 + len(
+                UciMapping.__bishop_directions) * 7 + UciMapping.__knight_directions.index((dl, dr))
+
+        return f, l1, n1
 
     @staticmethod
     def __create_uci_labels():

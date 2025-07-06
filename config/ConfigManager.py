@@ -17,7 +17,7 @@ class ConfigManager:
                 "FPU_VALUE": 0.26
             },
             "eval": {
-                "NUM_SIMULATION": 400,
+                "NUM_SIMULATION": 800,
                 "EXPLORATION_WEIGHT": 1.32,
                 "TEMPERATURE_CUTOFF": 0,
                 'POLICY_SOFTMAX_TEMP': 1.4,

@@ -78,8 +78,8 @@ while True:
                 gameplay.reset(fen)
                 need_cancel.clear()
                 if not human_play_first:
-                    # ai_thread = Thread(target=ai_move_thread)
-                    # ai_thread.start()
+                    #ai_thread = Thread(target=ai_move_thread)
+                    #ai_thread.start()
                     done = False
                     while not done:
                         move_uci, done = gameplay.ai_play()

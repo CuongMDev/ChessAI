@@ -53,8 +53,8 @@ class MonteCarloTreeSearch:
         if move_node is None:
             raise ValueError("Không thể cập nhật root vì move_node là None")
 
-        # print(-self.root.children_info.values[move_node.id] / self.root.children_info.visits[move_node.id], flush=True)
-        # print(max(-self.root.children_info.values / self.root.children_info.visits), flush=True)
+        # print(-self.root.children_info.average_values[move_node.id], flush=True)
+        # print(max(-self.root.children_info.average_values), flush=True)
 
         self.is_start_position = False
 
@@ -75,7 +75,7 @@ class MonteCarloTreeSearch:
         tức là sẽ không bị prune.
         """
         # Giả định nước yếu được dồn toàn bộ lượt còn lại
-        max_possible_visits = node.visit + remaining_visits * SMART_PRUNING_FACTOR
+        max_possible_visits = node.visit + remaining_visits / SMART_PRUNING_FACTOR
 
         return max_possible_visits > self.root.best_child_visit
 
@@ -148,16 +148,19 @@ class MonteCarloTreeSearch:
 
     def choose_child(self, node, temperature, check_kld=False):
         visits = node.children_info.visits
-        if check_kld and compute_kld(self.root.children_info.priors, visits / sum(visits)) > KLD_THRESHOLD:
-            return None, None
+        # if check_kld and compute_kld(self.root.children_info.priors, visits / sum(visits)) > KLD_THRESHOLD:
+        #     return None, None
 
-        pi = np.zeros(len(LABELS_MAP.labels_array))
-        for i, child in enumerate(node.children):
-            pi[child.last_move] = visits[i]
-        pi /= np.sum(pi)
+        if self.is_training:
+            pi = np.zeros(len(LABELS_MAP.labels_array))
+            for i, child in enumerate(node.children):
+                pi[child.last_move] = visits[i]
+            pi /= np.sum(pi)
 
-        for child in node.children:
-            pi[child.last_move] += 1 # Lưu cả thông tin mask, > 0 => mask = true
+            for child in node.children:
+                pi[child.last_move] += 1 # Lưu cả thông tin mask, > 0 => mask = true
+        else:
+            pi = None
 
         if temperature == 0:
             max_visit = np.max(visits)
