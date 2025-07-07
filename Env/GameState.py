@@ -40,7 +40,7 @@ class GameState:
     def is_start_position(self):
         return self._env.fen() == chess.STARTING_FEN
 
-    def get_train_board(self):
+    def get_train_input(self):
         board_2d = self.chess_env_to_2d_board()
 
         turn = self._env.turn
@@ -57,6 +57,7 @@ class GameState:
         reverse_turn_can_castle_king = self._env.has_kingside_castling_rights(not turn)
         reverse_turn_can_castle_queen = self._env.has_queenside_castling_rights(not turn)
         is_repetition = self._env.is_repetition(2)
+        half_move = self._env.halfmove_clock
 
         return np.concatenate([
                     board_2d,
@@ -65,6 +66,7 @@ class GameState:
                     np.full((BOARD_SIZE, 1), reverse_turn_can_castle_king, dtype=np.int32),
                     np.full((BOARD_SIZE, 1), reverse_turn_can_castle_queen, dtype=np.int32),
                     np.full((BOARD_SIZE, 1), is_repetition, dtype=np.int32),
+                    np.full((BOARD_SIZE, 1), min(half_move, 100), dtype=np.int32),
         ], axis=1)
 
     def rollback(self):

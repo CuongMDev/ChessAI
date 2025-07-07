@@ -126,7 +126,7 @@ class GameTrain:
                 game_state = GameState()
                 cache = []  # state, the best policy, reward
                 for chess_move in game.mainline_moves():
-                    cache.append([game_state.get_train_board()])
+                    cache.append([game_state.get_train_input()])
                     pi = np.zeros(len(LABELS_MAP.labels_array))
                     legal_moves = game_state.get_legal_moves()
                     if len(legal_moves) > 1:
@@ -135,7 +135,9 @@ class GameTrain:
                     move = game_state.real_uci_to_move(chess_move.uci())
                     game_state = game_state.perform_move(move)
 
-                    pi[move] = 2 - LABEL_SMOOTHING
+                    pi[move] = 2
+                    if len(legal_moves) > 1:
+                        pi[move] -= LABEL_SMOOTHING
 
                     cache[-1].extend([pi, 1])
 
