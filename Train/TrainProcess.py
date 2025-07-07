@@ -98,7 +98,7 @@ def train_with_self(agent_memory, experience_memory, episode, worker=0):
                 result = -1
                 break
 
-            cache.append([monte_carlo_tree.root.state.get_train_board()])
+            cache.append([monte_carlo_tree.root.state.get_train_input()])
             monte_carlo_tree.update_mcts_root(best_node)
             step_count += 1
 

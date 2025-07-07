@@ -34,11 +34,12 @@ class Network(nn.Module):
     @torch.jit.ignore
     def one_hot(self, x):
         board = x[:, :, :BOARD_SIZE]
+        half_move = x[:, :, -1] / 100
 
         board_one_hot = torch.stack([(board == i)
                              for i in range(1, len(PIECES_ORDER))]
                             ).transpose(0, 1)  # one hot chess piece
-        info = x[:, :, BOARD_SIZE:].transpose(1, 2).unsqueeze(2).expand(x.size(0), INFO_SIZE, BOARD_SIZE, BOARD_SIZE)
+        info = torch.cat((x[:, :, BOARD_SIZE:-1], half_move.unsqueeze(-1)), dim=2).transpose(1, 2).unsqueeze(2).expand(x.size(0), INFO_SIZE, BOARD_SIZE, BOARD_SIZE)
 
         x = torch.cat([board_one_hot, info, self.EXTEND_INFO.unsqueeze(0).expand(x.shape[0], -1, -1, -1)], dim=1).to(MODEL_DTYPE)
         return x
