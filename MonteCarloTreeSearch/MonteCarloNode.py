@@ -42,32 +42,40 @@ class MonteCarloNode:
         self.children_info = NodeInformation(policies, init_value)
         self.is_fully_expanded = True
 
+    def on_node_sticky(self):
+        self.state.has_sticky_result = True
+        self.value = self.state.result * self.visit
+        if self.parent:
+            self.parent.children_info.values[self.id] = self.value
+            self.parent.children_info.average_values[self.id] = self.state.result
+
     def backpropagate(self, reward):
         self.visit += 1
+
+        if self.state.has_sticky_result:
+            reward = self.state.result
         self.value += reward
+
         if self.parent:
             self.parent.children_info.add(self.id, reward)
-            self.parent.backpropagate(-reward)
-
             self.parent.best_child_visit = max(self.parent.best_child_visit, self.visit)
 
-            # check sticky result
-            if self.parent.state.has_sticky_result:
-                return
-            if not self.state.can_have_sticky_result:
-                self.parent.state.can_have_sticky_result = False
-                return
-            if self.state.has_sticky_result:
-                if self.state.result == -1:
-                    self.parent.state.result = 1  # win
-                    self.parent.state.has_sticky_result = True
-                    return
-
-                if self.parent.state.result is None:
-                    self.parent.state.result = -self.state.result
-                elif self.parent.state.result == -self.state.result:
-                    self.parent.children_info.add_sticky_result(self.id)
-                    if self.parent.children_info.has_sticky_result():
-                        self.parent.state.has_sticky_result = True
-                else: # self.parent.state.result != -self.state.result:
+            if not self.parent.state.has_sticky_result:
+                # check sticky result
+                if not self.state.can_have_sticky_result:
                     self.parent.state.can_have_sticky_result = False
+                elif self.state.has_sticky_result:
+                    if self.state.result == -1:
+                        self.parent.state.result = 1  # win
+                        self.parent.on_node_sticky()
+                    elif self.parent.state.result is None:
+                        self.parent.state.result = -self.state.result
+                    elif self.parent.state.result == -self.state.result:
+                        self.parent.children_info.add_sticky_result(self.id)
+                        if self.parent.children_info.has_sticky_result():
+                            self.parent.on_node_sticky()
+                    else: # self.parent.state.result != -self.state.result:
+                        self.parent.state.can_have_sticky_result = False
+
+            self.parent.backpropagate(-reward)
+

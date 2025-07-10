@@ -127,7 +127,7 @@ class GameState:
         new_state._env.push(chess_move)
         wdl = TABLEBASE.get_wdl(new_state._env)
         if wdl is not None:
-            if new_state._env.halfmove_clock + abs(TABLEBASE.probe_dtz(new_state._env)) <= 100:
+            if new_state._env.halfmove_clock + abs(TABLEBASE.probe_dtz(new_state._env)) < 100:
                 wdl = wdl // 2
                 new_state.result = wdl
                 if wdl == 1:
