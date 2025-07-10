@@ -45,8 +45,7 @@ class GamePlay:
     # Return move uci
     def ai_play(self):
         if self.can_claim_draw():
-            result_tablebase = self.mcts.root.state.result_tablebase
-            if result_tablebase is None or result_tablebase != 1:
+            if self.mcts.root.state.has_sticky_result is None or self.mcts.root.state.result != 1:
                 self.claimed_draw = True
                 return None, True # Draw
 

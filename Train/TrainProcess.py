@@ -107,7 +107,7 @@ def train_with_self(agent_memory, experience_memory, episode, worker=0):
 
             cache[-1].extend([pi, 1])
 
-            if best_node.state.result_tablebase is not None:
+            if best_node.state.result is not None:
                 temperature = 0
             elif step_count >= config.TEMPERATURE_CUTOFF:
                 temperature = TEMPERATURE_ENDGAME

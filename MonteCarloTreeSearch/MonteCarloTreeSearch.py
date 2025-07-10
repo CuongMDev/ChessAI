@@ -28,8 +28,6 @@ class MonteCarloTreeSearch:
         self.expand_first_root()
 
     def search(self, temperature):
-        self.boost_root_dtz()
-
         for loop in range(MAX_THINK_LOOP):
             for simulation in range(self.config.NUM_SIMULATION):
                 leaf = self.traverse(self.config.NUM_SIMULATION - simulation)
@@ -79,12 +77,6 @@ class MonteCarloTreeSearch:
 
         return max_possible_visits > self.root.best_child_visit
 
-    def boost_root_dtz(self):
-        self.expand(self.root)
-        if self.root.state.result_tablebase is not None:
-            self.root.children_info.priors *= self.root.state.get_tablebase_policy()
-            self.root.children_info.priors /= np.sum(self.root.children_info.priors)
-
     def expand_first_root(self):
         policies, _ = self.get_evaluation(self.root, self.root.state.get_legal_moves())
         if self.is_training:
@@ -122,7 +114,7 @@ class MonteCarloTreeSearch:
 
         while node.is_fully_expanded and node.children:
             node = node.best_child(self.config.EXPLORATION_WEIGHT)
-            if node.state is not None and node.state.result_tablebase is not None:
+            if node.state is not None and node.state.has_sticky_result:
                 break # break avoid wrong policy
 
         return node
