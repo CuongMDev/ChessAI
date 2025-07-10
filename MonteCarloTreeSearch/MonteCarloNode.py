@@ -50,3 +50,24 @@ class MonteCarloNode:
             self.parent.backpropagate(-reward)
 
             self.parent.best_child_visit = max(self.parent.best_child_visit, self.visit)
+
+            # check sticky result
+            if self.parent.state.has_sticky_result:
+                return
+            if not self.state.can_have_sticky_result:
+                self.parent.state.can_have_sticky_result = False
+                return
+            if self.state.has_sticky_result:
+                if self.state.result == -1:
+                    self.parent.state.result = 1  # win
+                    self.parent.state.has_sticky_result = True
+                    return
+
+                if self.parent.state.result is None:
+                    self.parent.state.result = -self.state.result
+                elif self.parent.state.result == -self.state.result:
+                    self.parent.children_info.add_sticky_result(self.id)
+                    if self.parent.children_info.has_sticky_result():
+                        self.parent.state.has_sticky_result = True
+                else: # self.parent.state.result != -self.state.result:
+                    self.parent.state.can_have_sticky_result = False

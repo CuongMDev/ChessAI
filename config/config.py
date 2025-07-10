@@ -60,9 +60,6 @@ SAVE_MODEL_PATH = 'saved_model/'
 MODEL_NAME = 'chess_checkpoint.pth'
 TABLEBASE_PATH = "Syzygy/"
 
-# Tablebase
-TABLEBASE_BOOST_DTZ_EPSILON = 0.2
-
 # Optimizer
 LEARNING_RATE = 0.04
 MOMENTUM = 0.9

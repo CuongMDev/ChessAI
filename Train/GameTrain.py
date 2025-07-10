@@ -79,6 +79,10 @@ class GameTrain:
                 p.terminate()
             raise Exception
 
+        del all_openings
+        del test_openings
+        gc.collect()
+
         win_game = results[1]
         draw_game = results[2]
         loss_game = results[0]
