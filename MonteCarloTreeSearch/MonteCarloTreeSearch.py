@@ -28,6 +28,10 @@ class MonteCarloTreeSearch:
         self.expand_first_root()
 
     def search(self, temperature):
+        if not self.root.is_fully_expanded:
+            value = self.rollout(self.root, force_expand=True)
+            self.root.backpropagate(value)
+
         for loop in range(MAX_THINK_LOOP):
             for simulation in range(self.config.NUM_SIMULATION):
                 leaf = self.traverse(self.config.NUM_SIMULATION - simulation)
@@ -122,19 +126,26 @@ class MonteCarloTreeSearch:
     def expand(self, node):
         if not node.is_fully_expanded and not node.state.is_terminate:
             policies, value = self.get_evaluation(node, node.state.get_legal_moves())
+            if node.state.has_sticky_result:
+                value = node.state.result
             node.expand(policies, max(-1, value - self.config.FPU_VALUE))
 
             return value
 
         return None
 
-    def rollout(self, node):
+    def rollout(self, node: MonteCarloNode, force_expand=False):
         node.get_state(copy_full_stack=False, claim_draw=True) # AI auto claim draw
-        value = self.expand(node)
+
+        if force_expand:
+            value = self.expand(node)
 
         score = node.state.score()
         if score is not None:
             return score
+
+        if not force_expand:
+            value = self.expand(node)
 
         return value
 
