@@ -18,8 +18,8 @@ print("Server Python Ready", flush=True)
 conn, addr = server.accept()
 print(f"Kết nối từ: {addr}")
 
-gameplay = GamePlay()
 need_cancel = Event()
+gameplay = GamePlay()
 
 def send_ai_act(move_uci=None):
     """
@@ -93,6 +93,10 @@ while True:
 
                 gameplay.rollback()
                 send_ai_act()
+
+            elif "thinking_ability" in received_data:
+                num_simulation = received_data["thinking_ability"] * 100
+                gameplay.set_num_simulation(num_simulation)
 
         except Exception as e:
             # Lấy chuỗi traceback đầy đủ

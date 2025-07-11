@@ -8,8 +8,9 @@ from torch import optim, nn
 from Agent.CustomLearningRate import CustomLearningRateSchedule
 from Agent.Network.Network import Network
 from Agent.AgentMemories import AgentMemories
+from config.NetworkConfig import MODEL_DTYPE, INFO_SIZE
 from config.config import LEARNING_RATE, SAVE_MODEL_PATH, L2_CONST, DECAY_RATE, \
-    NUM_WORKERS, MIN_EVALUATE_COUNT, MODEL_NAME, BOARD_SIZE, INFO_SIZE, MODEL_DTYPE, MOMENTUM, LOSE_WEIGHTS, \
+    NUM_WORKERS, MIN_EVALUATE_COUNT, MODEL_NAME, BOARD_SIZE, MOMENTUM, LOSE_WEIGHTS, \
     MAX_GRAD_NORM
 
 

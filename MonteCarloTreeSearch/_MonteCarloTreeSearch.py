@@ -1,18 +1,14 @@
 import numpy as np
-import torch
 
-from Agent.AgentMemories import AgentMemories
-from Utils.Utils import compute_kld
 from config.ConfigManager import ConfigManager
 from Env.GameState import GameState
 from MonteCarloTreeSearch.MonteCarloNode import MonteCarloNode
 from config.config import DIRICHLET_ALPHA, DIRICHLET_EPSILON, LABELS_MAP, MAX_THINK_LOOP, \
-    KLD_THRESHOLD, FPU_VALUE_AT_ROOT, TEMPERATURE_VISIT_OFFSET, SMART_PRUNING_FACTOR, ROOT_EXPLORATION_WEIGHT
+    FPU_VALUE_AT_ROOT, TEMPERATURE_VISIT_OFFSET, SMART_PRUNING_FACTOR, ROOT_EXPLORATION_WEIGHT
 
 
-class MonteCarloTreeSearch:
-    def __init__(self, agent_memories: AgentMemories, config: ConfigManager, worker=0, fen=None, is_training=True, auto_claim_draw=False):
-        self.agent_memories = agent_memories
+class _MonteCarloTreeSearch:
+    def __init__(self, config: ConfigManager, worker=0, fen=None, is_training=True, auto_claim_draw=False):
         self.worker = worker
         self.auto_claim_draw = auto_claim_draw
 
@@ -92,19 +88,7 @@ class MonteCarloTreeSearch:
         self.root.expand(policies, FPU_VALUE_AT_ROOT)
 
     def get_evaluation(self, node, legal_move):
-        state_tensor = torch.from_numpy(node.state.get_train_input())
-        self.agent_memories.add_evaluation_req(self.worker, state_tensor, legal_move)
-        self.agent_memories.share_valid_data[self.worker].wait()
-
-        policies, value = self.agent_memories.get_evaluation(self.worker)
-
-        policies /= self.config.POLICY_SOFTMAX_TEMP
-        policies = torch.softmax(policies, dim=-1).numpy()
-
-        value = torch.softmax(value, dim=-1)
-        value = (value[2] - value[0]).item()
-
-        return policies, value
+        pass
 
     def traverse(self, remaining_visits) -> MonteCarloNode:
         node = self.root
@@ -151,8 +135,6 @@ class MonteCarloTreeSearch:
 
     def choose_child(self, node, temperature, check_kld=False):
         visits = node.children_info.visits
-        # if check_kld and compute_kld(self.root.children_info.priors, visits / sum(visits)) > KLD_THRESHOLD:
-        #     return None, None
 
         if self.is_training:
             pi = np.zeros(len(LABELS_MAP.labels_array))

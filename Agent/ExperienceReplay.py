@@ -2,7 +2,8 @@ from multiprocessing import Value
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 
-from config.config import BOARD_SIZE, DEVICE, EXP_MAX, INFO_SIZE, LABELS_MAP
+from config.NetworkConfig import INFO_SIZE, DEVICE
+from config.config import BOARD_SIZE, EXP_MAX, LABELS_MAP
 
 
 class ExperienceReplay(Dataset):

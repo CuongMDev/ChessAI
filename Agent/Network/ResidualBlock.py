@@ -2,7 +2,7 @@ from torch import nn
 import torch.nn.functional as F
 
 from Agent.Network.SELayer import SELayer
-from config.config import FILTER_CHANNEL, FILTER_SIZE
+from config.NetworkConfig import FILTER_CHANNEL, FILTER_SIZE
 
 
 class ResidualBlock(nn.Module):
