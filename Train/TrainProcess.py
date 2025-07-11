@@ -4,7 +4,7 @@ from Env.GameState import GameState
 from MonteCarloTreeSearch.MonteCarloNode import MonteCarloNode
 from config.ConfigManager import ConfigManager
 from Agent.ExperienceReplay import ExperienceReplay
-from MonteCarloTreeSearch.MonteCarloTreeSearch import MonteCarloTreeSearch
+from MonteCarloTreeSearch.MonteCarloTreeSearchTrain import MonteCarloTreeSearchTrain
 from Agent.AgentMemories import AgentMemories
 from config.config import TEMPERATURE, GAME_EVALUATE, TEMPERATURE_ENDGAME, TEMPERATURE_DELAY, TEMPERATURE_DECAY, \
     RESIGN_PERCENTAGE, RESIGN_PLAYTHROUGH
@@ -37,7 +37,7 @@ def play_with_agent(agent_memory, develop_agent_memory, results, num_game, openi
         mcts = [None, None]
         for i in range(len(agents_memories)):
             agents_memories[i].change_current_worker_count(1)
-            mcts[i] = MonteCarloTreeSearch(agents_memories[i], config, worker, is_training=False, auto_claim_draw=True)
+            mcts[i] = MonteCarloTreeSearchTrain(agents_memories[i], config, worker, is_training=False, auto_claim_draw=True)
             mcts[i].root = MonteCarloNode(game_state)
             mcts[i].is_start_position = mcts[i].root.state.is_start_position()
             agents_memories[i].change_current_worker_count(-1)
@@ -89,7 +89,7 @@ def train_with_self(agent_memory, experience_memory, episode, worker=0):
 
         step_count = 0
         cache = [] # state, the best policy, reward
-        monte_carlo_tree = MonteCarloTreeSearch(agent_memories, config, worker, auto_claim_draw=True)
+        monte_carlo_tree = MonteCarloTreeSearchTrain(agent_memories, config, worker, auto_claim_draw=True)
 
         while not done:
             best_node, pi = monte_carlo_tree.search(temperature)

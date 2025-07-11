@@ -13,9 +13,10 @@ from Agent.Agent import Agent
 from Agent.ExperienceReplay import ExperienceReplay
 from Env.GameState import GameState
 from Train.TrainProcess import play_with_agent, train_with_self
-from config.config import EPISODE, GAME_EVALUATE, GAME_TRAIN_STEP, BATCH_SIZE, EPOCHS, WIN_UPDATE_PERCENT \
-    , NUM_WORKERS, VALIDATION_SPLIT, PRETRAIN_FILE, PRETRAIN_GAME_ITERATION, PRETRAIN_EPOCHS, \
-    PRETRAIN_MIN_VALUE_MOVE_NUMBER, OPENING_FILE, DEVICE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP
+from config.NetworkConfig import EPOCHS, VALIDATION_SPLIT
+from config.config import EPISODE, GAME_EVALUATE, GAME_TRAIN_STEP, BATCH_SIZE, WIN_UPDATE_PERCENT \
+    , NUM_WORKERS, PRETRAIN_FILE, PRETRAIN_GAME_ITERATION, PRETRAIN_EPOCHS, \
+    PRETRAIN_MIN_VALUE_MOVE_NUMBER, OPENING_FILE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP
 
 
 class GameTrain:
@@ -58,7 +59,7 @@ class GameTrain:
         develop_agent.memories.clear()
         self.agent.set_jit_mode('script')
         develop_agent.set_jit_mode('script')
-        if DEVICE.type == 'cuda':
+        if self.device.type == 'cuda':
             torch.backends.cudnn.benchmark = False
 
         process = []
@@ -112,7 +113,7 @@ class GameTrain:
 
     def pretrain(self):
         print('-------pretrain-------')
-        if DEVICE.type == 'cuda':
+        if self.device.type == 'cuda':
             torch.backends.cudnn.benchmark = True
 
         start_time = time.time()
@@ -181,7 +182,7 @@ class GameTrain:
             num_game = Value('i', min(EPISODE, current_ep + GAME_TRAIN_STEP) - current_ep)
             self.agent.memories.reset()
             self.agent.set_jit_mode('trace')
-            if DEVICE.type == 'cuda':
+            if self.device.type == 'cuda':
                 torch.backends.cudnn.benchmark = True
 
             process = []

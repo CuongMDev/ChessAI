@@ -1,6 +1,3 @@
-import torch
-
-from Env.ExtendInfo import create_extend_info
 from Env.UciMapping import UciMapping, BOARD_SIZE, POLICY_OUT_CHANNEL
 
 # Multiprocess
@@ -14,19 +11,6 @@ PRETRAIN_GAME_ITERATION = 500
 PRETRAIN_MIN_VALUE_MOVE_NUMBER = 10
 PRETRAIN_EPOCHS = 1
 LABEL_SMOOTHING = 0.4
-
-# Model
-INFO_SIZE = 6
-EXTEND_INFO = create_extend_info()
-FILTER_CHANNEL = 256
-FILTER_SIZE = 3
-RES_LAYER_NUM = 7
-SE_CHANNELS = 32
-VALUE_FC_SIZE = 256
-EPOCHS = 1
-VALIDATION_SPLIT = 0.02
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-MODEL_DTYPE = torch.float
 
 # MCTS
 BATCH_SIZE = 256
@@ -58,6 +42,7 @@ DIRICHLET_EPSILON = 0.1
 
 SAVE_MODEL_PATH = 'saved_model/'
 MODEL_NAME = 'chess_checkpoint.pth'
+MODEL_ONNX_NAME = 'chess_model.onnx'
 TABLEBASE_PATH = "Syzygy/"
 
 # Optimizer

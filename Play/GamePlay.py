@@ -1,15 +1,13 @@
-from Agent.Agent import Agent
-from MonteCarloTreeSearch.MonteCarloTreeSearch import MonteCarloTreeSearch
+import onnxruntime as ort
+
+from MonteCarloTreeSearch.MonteCarloTreeSearchPlay import MonteCarloTreeSearchPlay
 from config.ConfigManager import ConfigManager
-from config.config import DEVICE, TEMPERATURE
+from config.config import SAVE_MODEL_PATH, MODEL_ONNX_NAME
 
 
 class GamePlay:
     def __init__(self):
-        self.agent = Agent(DEVICE, 1, 1)
-        self.agent.load_checkpoint()
-        self.agent.on_wait()
-        self.agent.set_jit_mode('trace')
+        self.session = ort.InferenceSession(SAVE_MODEL_PATH + MODEL_ONNX_NAME, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
 
         self.temperature = None
         self.step = None
@@ -22,10 +20,13 @@ class GamePlay:
         self.reset()
 
     def reset(self, fen=None):
-        self.mcts = MonteCarloTreeSearch(self.agent.memories, self.config, fen=fen, is_training=False)
+        self.mcts = MonteCarloTreeSearchPlay(self.session, self.config, fen=fen, is_training=False)
         self.step = 0
         self.claimed_draw = False
-        self.temperature = TEMPERATURE
+        self.temperature = 0.9
+
+    def set_num_simulation(self, num_simulation):
+        self.config.NUM_SIMULATION = num_simulation
 
     def play(self, move_uci):
         move = self.mcts.root.state.real_uci_to_move(move_uci)

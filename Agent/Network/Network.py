@@ -1,18 +1,20 @@
 import torch
+from onnx.reference.ops.op_gathernd import GatherND
 from torch import nn
 import torch.nn.functional as F
 
 from Agent.Network.ResidualBlock import ResidualBlock
 from Env.UciMapping import POLICY_OUT_CHANNEL
-from config.config import BOARD_SIZE, PIECES_ORDER, FILTER_CHANNEL, VALUE_FC_SIZE, RES_LAYER_NUM, \
-    INFO_SIZE, FILTER_SIZE, EXTEND_INFO, MODEL_DTYPE, UCI_LABELS_MAP
+from config.config import BOARD_SIZE, PIECES_ORDER, UCI_LABELS_MAP
+from config.NetworkConfig import FILTER_CHANNEL, VALUE_FC_SIZE, RES_LAYER_NUM, \
+    INFO_SIZE, FILTER_SIZE, EXTEND_INFO, MODEL_DTYPE
 
 
 class Network(nn.Module):
     def __init__(self):
         super(Network, self).__init__()
 
-        self.register_buffer('UCI_LABELS_MAP', torch.from_numpy(UCI_LABELS_MAP), persistent=False)
+        self.register_buffer('UCI_LABELS_MAP', torch.from_numpy(UCI_LABELS_MAP).flatten(), persistent=False)
         self.register_buffer('EXTEND_INFO', torch.from_numpy(EXTEND_INFO), persistent=False)
 
         # common
@@ -60,6 +62,7 @@ class Network(nn.Module):
         x_pol = self.pol_batch_norm(x_pol)
         x_pol = F.relu(x_pol)
         x_pol = self.pol_conv2(x_pol)
+        x_pol = torch.flatten(x_pol, start_dim=1)
         x_pol = x_pol[:, self.UCI_LABELS_MAP]
 
         # value layers

@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from config.config import FILTER_CHANNEL, SE_CHANNELS
+from config.NetworkConfig import FILTER_CHANNEL, SE_CHANNELS
 
 
 class SELayer(nn.Module):
