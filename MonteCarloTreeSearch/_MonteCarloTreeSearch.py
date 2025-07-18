@@ -1,5 +1,6 @@
 import numpy as np
 
+from Utils.Utils import Utils
 from config.ConfigManager import ConfigManager
 from Env.GameState import GameState
 from MonteCarloTreeSearch.MonteCarloNode import MonteCarloNode
@@ -30,7 +31,7 @@ class _MonteCarloTreeSearch:
 
         for loop in range(MAX_THINK_LOOP):
             for simulation in range(self.config.NUM_SIMULATION):
-                leaf = self.traverse(self.config.NUM_SIMULATION - simulation)
+                leaf = self.traverse(self.root, self.config.NUM_SIMULATION - simulation)
                 simulation_result = self.rollout(leaf)
                 leaf.backpropagate(simulation_result)
 
@@ -90,13 +91,13 @@ class _MonteCarloTreeSearch:
     def get_evaluation(self, node, legal_move):
         pass
 
-    def traverse(self, remaining_visits) -> MonteCarloNode:
-        node = self.root
+    def traverse(self, start_node, remaining_visits) -> MonteCarloNode:
+        node = start_node
         if node.is_fully_expanded:
             while True:
-                node = self.root.best_child(ROOT_EXPLORATION_WEIGHT if self.is_start_position else self.config.EXPLORATION_WEIGHT)
-                if not self.is_training and not self.can_overtake_bestmove(node, remaining_visits):
-                    self.root.children_info.average_values[node.id] = 1e9  # no visit anymore
+                node = start_node.best_child(ROOT_EXPLORATION_WEIGHT if self.is_start_position else self.config.EXPLORATION_WEIGHT)
+                if not self.is_training and start_node is self.root and not self.can_overtake_bestmove(node, remaining_visits):
+                    start_node.children_info.priors[node.id] = -1e9  # no visit anymore
                     continue  # continue find new node
                 break
 
@@ -110,8 +111,6 @@ class _MonteCarloTreeSearch:
     def expand(self, node):
         if not node.is_fully_expanded and not node.state.is_terminate:
             policies, value = self.get_evaluation(node, node.state.get_legal_moves())
-            if node.state.has_sticky_result:
-                value = node.state.result
             node.expand(policies, max(-1, value - self.config.FPU_VALUE))
 
             return value

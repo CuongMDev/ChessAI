@@ -119,6 +119,6 @@ def train_with_self(agent_memory, experience_memory, episode, worker=0):
                 cache[i][2] *= -result
             else:
                 cache[i][2] *= result
-            experience_replay.add_experience(cache[i])
+        experience_replay.add_experiences(cache)
 
     agent_memories.change_current_worker_count(-1)

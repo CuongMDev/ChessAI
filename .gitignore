@@ -10,3 +10,9 @@ saved_model/*
 
 Syzygy/*
 !Syzygy/.gitkeep
+
+build/
+chess_build_env/
+cuda_lib/
+GameProcess/
+game_socket.spec

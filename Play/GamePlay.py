@@ -1,13 +1,11 @@
-import onnxruntime as ort
-
 from MonteCarloTreeSearch.MonteCarloTreeSearchPlay import MonteCarloTreeSearchPlay
+from Utils.Utils import Utils
 from config.ConfigManager import ConfigManager
 from config.config import SAVE_MODEL_PATH, MODEL_ONNX_NAME
 
-
 class GamePlay:
     def __init__(self):
-        self.session = ort.InferenceSession(SAVE_MODEL_PATH + MODEL_ONNX_NAME, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
+        self.session = Utils.get_session(Utils.resource_path(SAVE_MODEL_PATH + MODEL_ONNX_NAME))
 
         self.temperature = None
         self.step = None
@@ -25,8 +23,9 @@ class GamePlay:
         self.claimed_draw = False
         self.temperature = 0.9
 
-    def set_num_simulation(self, num_simulation):
-        self.config.NUM_SIMULATION = num_simulation
+    def set_search_config(self, num_simulation, search_thread):
+        self.config.NUM_SIMULATION = int(num_simulation)
+        self.mcts.set_play_thread(int(search_thread))
 
     def play(self, move_uci):
         move = self.mcts.root.state.real_uci_to_move(move_uci)

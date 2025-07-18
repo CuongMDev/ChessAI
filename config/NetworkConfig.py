@@ -12,5 +12,6 @@ SE_CHANNELS = 32
 VALUE_FC_SIZE = 256
 EPOCHS = 1
 VALIDATION_SPLIT = 0.02
+VALIDATION_STEP = 5
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 MODEL_DTYPE = torch.float

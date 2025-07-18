@@ -19,6 +19,7 @@ conn, addr = server.accept()
 print(f"Kết nối từ: {addr}")
 
 need_cancel = Event()
+play_with_bot = False
 gameplay = GamePlay()
 
 def send_ai_act(move_uci=None):
@@ -34,7 +35,6 @@ def send_ai_act(move_uci=None):
     conn.sendall(json_data.encode())
 
 ai_thread = None
-
 def ai_move_thread():
     move_uci, done = gameplay.ai_play()
     if not need_cancel.is_set():
@@ -62,28 +62,29 @@ while True:
                 done = gameplay.play(move_uci)
                 need_cancel.clear()
 
-                if not done:
+                if play_with_bot and not done:
                     ai_thread = Thread(target=ai_move_thread)
                     ai_thread.start()
                 elif not need_cancel.is_set():
                     send_ai_act()
 
-            elif "reset" in received_data and "human_play_first" in received_data and "fen" in received_data:
+            elif "reset" in received_data and "play_with_bot" in received_data and "human_play_first" in received_data and "fen" in received_data:
                 need_cancel.set()
                 if ai_thread is not None:
                     ai_thread.join() # wait ai
 
+                play_with_bot = received_data["play_with_bot"]
                 human_play_first = received_data["human_play_first"]
                 fen = received_data["fen"]
                 gameplay.reset(fen)
                 need_cancel.clear()
-                if not human_play_first:
-                    #ai_thread = Thread(target=ai_move_thread)
-                    #ai_thread.start()
-                    done = False
-                    while not done:
-                        move_uci, done = gameplay.ai_play()
-                        send_ai_act(move_uci)
+                if play_with_bot and not human_play_first:
+                    ai_thread = Thread(target=ai_move_thread)
+                    ai_thread.start()
+                    # done = False
+                    # while not done:
+                    #     move_uci, done = gameplay.ai_play()
+                    #     send_ai_act(move_uci)
 
             elif "rollback" in received_data:
                 need_cancel.set()
@@ -94,9 +95,10 @@ while True:
                 gameplay.rollback()
                 send_ai_act()
 
-            elif "thinking_ability" in received_data:
+            elif "thinking_ability" in received_data and "search_thread" in received_data:
                 num_simulation = received_data["thinking_ability"] * 100
-                gameplay.set_num_simulation(num_simulation)
+                search_thread = received_data["search_thread"]
+                gameplay.set_search_config(num_simulation, search_thread)
 
         except Exception as e:
             # Lấy chuỗi traceback đầy đủ

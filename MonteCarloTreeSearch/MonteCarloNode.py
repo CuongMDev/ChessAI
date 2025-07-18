@@ -2,6 +2,7 @@ import math
 
 from Env.GameState import GameState
 from MonteCarloTreeSearch.NodeInformation import NodeInformation
+from config.config import VIRTUAL_LOSS
 
 
 class MonteCarloNode:
@@ -17,6 +18,8 @@ class MonteCarloNode:
         self.value = 0
         self.best_child_visit = 0
         self.id = id
+
+        self.is_evaluating = False # use for play
 
     def best_child(self, exploration_weight):
         best_index = self.children_info.max_puct_score_index(math.sqrt(self.visit), exploration_weight)
@@ -79,3 +82,16 @@ class MonteCarloNode:
 
             self.parent.backpropagate(-reward)
 
+    def backpropagate_virtual_loss(self, remove_virtual_loss, stop_node=None):
+        if stop_node is not None and self is stop_node:
+            return
+
+        sign = -1 if remove_virtual_loss else 1
+        self.visit += sign
+        self.value += VIRTUAL_LOSS * sign
+
+        if self.parent:
+            self.parent.children_info.add(self.id, VIRTUAL_LOSS * sign, sign)
+            self.parent.best_child_visit = max(self.parent.best_child_visit, self.visit)
+
+            self.parent.backpropagate_virtual_loss(remove_virtual_loss, stop_node)

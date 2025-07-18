@@ -16,7 +16,7 @@ from Train.TrainProcess import play_with_agent, train_with_self
 from config.NetworkConfig import EPOCHS, VALIDATION_SPLIT
 from config.config import EPISODE, GAME_EVALUATE, GAME_TRAIN_STEP, BATCH_SIZE, WIN_UPDATE_PERCENT \
     , NUM_WORKERS, PRETRAIN_FILE, PRETRAIN_GAME_ITERATION, PRETRAIN_EPOCHS, \
-    PRETRAIN_MIN_VALUE_MOVE_NUMBER, OPENING_FILE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP
+    PRETRAIN_MIN_VALUE_MOVE_NUMBER, OPENING_FILE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP, USING_PRETRAIN
 
 
 class GameTrain:
@@ -144,17 +144,9 @@ class GameTrain:
                     if len(legal_moves) > 1:
                         pi[move] -= LABEL_SMOOTHING
 
-                    cache[-1].extend([pi, 1])
+                    cache[-1].extend([pi, 2]) # not pretrain value
 
-                reward = game_state.result
-                for i in range(len(cache)):
-                    if i < PRETRAIN_MIN_VALUE_MOVE_NUMBER:
-                        cache[i][2] = 2 # 2 : not train value
-                    elif (len(cache) - i) % 2:
-                        cache[i][2] *= -reward
-                    else:
-                        cache[i][2] *= reward
-                    self.experience_replay.add_experience(cache[i])
+                self.experience_replay.add_experiences(cache)
 
                 if (current_num_game + 1) % PRETRAIN_GAME_ITERATION == 0 or current_num_game == len(all_games) - 1:
                     print(current_num_game // PRETRAIN_GAME_ITERATION, end=' ', flush=True)
@@ -215,7 +207,7 @@ class GameTrain:
             start_time = time.time()
 
     def train(self):
-        if not self.pretrained:
+        if USING_PRETRAIN and not self.pretrained:
            self.pretrain()
         self.self_play_train()
 

@@ -1,10 +1,10 @@
-import numpy as np
 import chess
 import chess.syzygy
+import numpy as np
 from chess import STARTING_FEN
 
 from Env.UciMapping import get_dict_value
-from config.config import PIECES_ORDER, BOARD_SIZE, LABELS_MAP, TABLEBASE_PATH
+from config.config import PIECES_ORDER, BOARD_SIZE, LABELS_MAP, TABLEBASE_PATH, BONUS_END_POSITION
 
 TABLEBASE = chess.syzygy.open_tablebase(TABLEBASE_PATH)
 
@@ -149,4 +149,6 @@ class GameState:
         return new_state
 
     def score(self):
+        if self.is_terminate:
+            return self.result + np.sign(self.result) * BONUS_END_POSITION
         return self.result

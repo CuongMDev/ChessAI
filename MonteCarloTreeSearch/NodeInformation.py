@@ -15,10 +15,11 @@ class NodeInformation:
         self.has_sticky_endgame = np.zeros(len(priors), dtype=bool)
         self.has_sticky_num = 0
 
-    def add(self, id, reward):
-        self.visits[id] += 1
+    def add(self, id, reward, visit=1):
+        self.visits[id] += visit
         self.values[id] += reward
-        self.average_values[id] = self.values[id] / self.visits[id]
+        if self.visits[id] != 0:
+            self.average_values[id] = self.values[id] / self.visits[id]
 
     def add_sticky_result(self, id):
         if not self.has_sticky_endgame[id]:

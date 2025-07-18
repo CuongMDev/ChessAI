@@ -8,7 +8,7 @@ from torch import optim, nn
 from Agent.CustomLearningRate import CustomLearningRateSchedule
 from Agent.Network.Network import Network
 from Agent.AgentMemories import AgentMemories
-from config.NetworkConfig import MODEL_DTYPE, INFO_SIZE
+from config.NetworkConfig import MODEL_DTYPE, INFO_SIZE, VALIDATION_STEP
 from config.config import LEARNING_RATE, SAVE_MODEL_PATH, L2_CONST, DECAY_RATE, \
     NUM_WORKERS, MIN_EVALUATE_COUNT, MODEL_NAME, BOARD_SIZE, MOMENTUM, LOSE_WEIGHTS, \
     MAX_GRAD_NORM
@@ -51,12 +51,16 @@ class Agent:
     def fit(self, train_loader, epochs, val_loader=None):
         train_loss = []
         val_loss = []
+
+        num_batches = len(train_loader)
+        validate_every = max(1, num_batches // VALIDATION_STEP)
+
         for epoch in range(epochs):
             self.network.train()
 
             total_loss = 0
             total_samples = 0
-            for inp in train_loader:
+            for i, inp in enumerate(train_loader):
                 self.optimizer.zero_grad()
 
                 loss = self.get_loss(inp)
@@ -69,12 +73,13 @@ class Agent:
 
                 self.optimizer.step()
 
+                # 🧪 Chia đều validate trong epoch + đảm bảo có validate lần cuối
+                if val_loader is not None and ((i + 1) % validate_every == 0 or (i + 1) == num_batches):
+                    val_epoch_loss = self.validate(val_loader)
+                    val_loss.append(val_epoch_loss)
+
             train_epoch_loss = total_loss / total_samples
             train_loss.append(train_epoch_loss)
-
-            if val_loader is not None:
-                val_epoch_loss = self.validate(val_loader)
-                val_loss.append(val_epoch_loss)
 
         return train_loss, val_loss  # Trả về giá trị loss cuối cùng (float)
 
