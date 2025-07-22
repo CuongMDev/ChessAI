@@ -16,7 +16,7 @@ from Train.TrainProcess import play_with_agent, train_with_self
 from config.NetworkConfig import EPOCHS, VALIDATION_SPLIT
 from config.config import EPISODE, GAME_EVALUATE, GAME_TRAIN_STEP, BATCH_SIZE, WIN_UPDATE_PERCENT \
     , NUM_WORKERS, PRETRAIN_FILE, PRETRAIN_GAME_ITERATION, PRETRAIN_EPOCHS, \
-    PRETRAIN_MIN_VALUE_MOVE_NUMBER, OPENING_FILE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP, USING_PRETRAIN
+    OPENING_FILE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP, USING_PRETRAIN
 
 
 class GameTrain:
@@ -104,9 +104,6 @@ class GameTrain:
             self.time_not_update_model = 0
         else:
             develop_agent.on_stop()
-            if win_rate < 0.5:
-                self.experience_replay.reset()
-
             self.time_not_update_model += 1
             if self.time_not_update_model % UPDATE_LR_STEP == 0:
                 self.agent.scheduler.step()

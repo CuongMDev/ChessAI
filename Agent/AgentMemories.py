@@ -1,8 +1,9 @@
 from multiprocessing import Event, Value
+
 import torch
 
-from config.NetworkConfig import INFO_SIZE
-from config.config import BOARD_SIZE, NUM_WORKERS, MIN_EVALUATE_COUNT, LABELS_MAP
+from config.EnvConfig import INFO_SIZE, BOARD_SIZE
+from config.config import NUM_WORKERS, MIN_EVALUATE_COUNT
 
 
 class AgentMemories:

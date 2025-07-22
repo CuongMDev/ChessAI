@@ -1,8 +1,7 @@
 import torch
 
 from Agent.Network.Network import Network
-from Env.UciMapping import BOARD_SIZE
-from config.NetworkConfig import INFO_SIZE
+from config.EnvConfig import INFO_SIZE, BOARD_SIZE
 from config.config import SAVE_MODEL_PATH, MODEL_NAME
 
 checkpoint = torch.load(SAVE_MODEL_PATH + MODEL_NAME, map_location='cpu')
@@ -17,12 +16,14 @@ torch.onnx.export(
     (dummy_input,),
     "saved_model/chess_model.onnx",
     export_params=True,
-    opset_version=11,
+    opset_version=17,
     do_constant_folding=True,
-    input_names=['board-state'],
+    input_names=['board-states'],
     output_names=['policies-values'],
     dynamic_axes = {
-        'board-state': {0: 'batch_size'},  # batch size là dynamic
+        'board-states': {0: 'batch_size'},  # batch size là dynamic
         'policies-values': {0: 'batch_size'}  # output cũng theo batch
     }
 )
+
+print('success')

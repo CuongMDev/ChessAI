@@ -1,21 +1,23 @@
 import torch
-from onnx.reference.ops.op_gathernd import GatherND
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 
 from Agent.Network.ResidualBlock import ResidualBlock
-from Env.UciMapping import POLICY_OUT_CHANNEL
-from config.config import BOARD_SIZE, PIECES_ORDER, UCI_LABELS_MAP
+from config.EnvConfig import INFO_SIZE, BOARD_SIZE, POLICY_OUT_CHANNEL, PIECES_ORDER
 from config.NetworkConfig import FILTER_CHANNEL, VALUE_FC_SIZE, RES_LAYER_NUM, \
-    INFO_SIZE, FILTER_SIZE, EXTEND_INFO, MODEL_DTYPE
+    FILTER_SIZE, EXTEND_INFO
+from config.config import LABELS_MAP
 
 
 class Network(nn.Module):
-    def __init__(self):
+    def __init__(self, use_fp16=False, use_channels_last=False):
         super(Network, self).__init__()
 
-        self.register_buffer('UCI_LABELS_MAP', torch.from_numpy(UCI_LABELS_MAP).flatten(), persistent=False)
+        self.register_buffer('MASK_INDEX', torch.from_numpy(LABELS_MAP.mask_index), persistent=False)
         self.register_buffer('EXTEND_INFO', torch.from_numpy(EXTEND_INFO), persistent=False)
+
+        self.use_channels_last = use_channels_last
+        self.use_fp16 = use_fp16
 
         # common
         self.conv = nn.Conv2d(in_channels=INFO_SIZE + len(PIECES_ORDER) - 1 + len(EXTEND_INFO), out_channels=FILTER_CHANNEL, kernel_size=FILTER_SIZE, bias=False, padding='same') # -1 dấu .
@@ -43,7 +45,17 @@ class Network(nn.Module):
                             ).transpose(0, 1)  # one hot chess piece
         info = torch.cat((x[:, :, BOARD_SIZE:-1], half_move.unsqueeze(-1)), dim=2).transpose(1, 2).unsqueeze(2).expand(x.size(0), INFO_SIZE, BOARD_SIZE, BOARD_SIZE)
 
-        x = torch.cat([board_one_hot, info, self.EXTEND_INFO.unsqueeze(0).expand(x.shape[0], -1, -1, -1)], dim=1).to(MODEL_DTYPE)
+        x = torch.cat([board_one_hot, info, self.EXTEND_INFO.unsqueeze(0).expand(x.shape[0], -1, -1, -1)], dim=1)
+        if self.use_fp16:
+            x = x.half()
+        else:
+            x = x.float()
+
+        if self.use_channels_last:
+            x = x.contiguous(memory_format=torch.channels_last)
+        else:
+            x = x.contiguous()
+
         return x
 
     def forward(self, x):
@@ -63,7 +75,7 @@ class Network(nn.Module):
         x_pol = F.relu(x_pol)
         x_pol = self.pol_conv2(x_pol)
         x_pol = torch.flatten(x_pol, start_dim=1)
-        x_pol = x_pol[:, self.UCI_LABELS_MAP]
+        x_pol = torch.index_select(x_pol, dim=1, index=self.MASK_INDEX)
 
         # value layers
         x_val = self.val_conv(x)

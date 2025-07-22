@@ -2,8 +2,7 @@ import numpy as np
 from numba.typed import Dict
 from numba import types, njit, int32
 
-BOARD_SIZE = 8
-POLICY_OUT_CHANNEL = 80
+from config.EnvConfig import BOARD_SIZE
 
 @njit
 def get_dict_value(dict, key):
@@ -21,9 +20,10 @@ class UciMapping:
     def __init__(self):
         self.labels_array = UciMapping.__create_uci_labels()
 
-        key = np.array([UciMapping.__uci_to_mask_index(uci) for uci in self.labels_array], dtype=np.int32)
-        idx = np.lexsort((key[:, 2], key[:, 1], key[:, 0]))
+        self.mask_index = np.array([UciMapping.__uci_to_mask_index(uci) for uci in self.labels_array], dtype=np.int32)
+        idx = np.argsort(self.mask_index)
 
+        self.mask_index = self.mask_index[idx]
         self.labels_array = self.labels_array[idx]
         self.dict = Dict.empty(
             key_type=types.unicode_type,
@@ -66,7 +66,7 @@ class UciMapping:
             f = len(UciMapping.__rook_directions) * 7 + len(
                 UciMapping.__bishop_directions) * 7 + UciMapping.__knight_directions.index((dl, dr))
 
-        return f, l1, n1
+        return f * BOARD_SIZE ** 2 + l1 * BOARD_SIZE + n1
 
     @staticmethod
     def __create_uci_labels():
@@ -100,9 +100,3 @@ class UciMapping:
                     labels_array.append(l + '7' + l_r + '8' + p)
 
         return np.array(labels_array, dtype='U5')
-
-    def create_uci_labels_mask(self):
-        labels_mask = np.zeros((POLICY_OUT_CHANNEL, BOARD_SIZE, BOARD_SIZE), dtype=bool)
-        for uci in self.labels_array:
-            labels_mask[UciMapping.__uci_to_mask_index(uci)] = True
-        return labels_mask

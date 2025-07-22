@@ -1,9 +1,11 @@
 from multiprocessing import Value
-import torch
-from torch.utils.data import DataLoader, Dataset, random_split, Subset
 
-from config.NetworkConfig import INFO_SIZE, DEVICE
-from config.config import BOARD_SIZE, EXP_MAX, LABELS_MAP
+import torch
+from torch.utils.data import DataLoader, Dataset, Subset
+
+from config.EnvConfig import INFO_SIZE, BOARD_SIZE
+from config.NetworkConfig import DEVICE
+from config.config import EXP_MAX, LABELS_MAP
 
 
 class ExperienceReplay(Dataset):
@@ -40,6 +42,7 @@ class ExperienceReplay(Dataset):
     def reset(self):
         self.index.value = 0
         self.size.value = 0
+        self.game_index.value = 0
         self.game_num.value = 0
 
     def delete_device_memory(self):

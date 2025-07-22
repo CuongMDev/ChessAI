@@ -1,4 +1,3 @@
-import copy
 import os
 from threading import Thread, Event
 
@@ -8,15 +7,15 @@ from torch import optim, nn
 from Agent.CustomLearningRate import CustomLearningRateSchedule
 from Agent.Network.Network import Network
 from Agent.AgentMemories import AgentMemories
-from config.NetworkConfig import MODEL_DTYPE, INFO_SIZE, VALIDATION_STEP
+from config.NetworkConfig import VALIDATION_STEP, USE_FP16
 from config.config import LEARNING_RATE, SAVE_MODEL_PATH, L2_CONST, DECAY_RATE, \
-    NUM_WORKERS, MIN_EVALUATE_COUNT, MODEL_NAME, BOARD_SIZE, MOMENTUM, LOSE_WEIGHTS, \
+    NUM_WORKERS, MIN_EVALUATE_COUNT, MODEL_NAME, MOMENTUM, LOSE_WEIGHTS, \
     MAX_GRAD_NORM
-
+from config.EnvConfig import BOARD_SIZE, INFO_SIZE
 
 class Agent:
     def __init__(self, device, num_worker=NUM_WORKERS, min_evaluate_count=MIN_EVALUATE_COUNT):
-        self.network = Network().to(device)
+        self.network = Network(use_channels_last=True).to(device).to(memory_format=torch.channels_last)
         self.memories = AgentMemories(num_workers=num_worker, min_evaluate_count=min_evaluate_count)
         self.stop_event = Event()
         self.wait_process = Thread(target=self.wait_and_evaluate, args=(self.memories.need_evaluate, self.stop_event))
@@ -126,14 +125,20 @@ class Agent:
 
     def set_jit_mode(self, mode):
         self.jit_mode = mode
+        copy_network = Network(use_fp16=USE_FP16, use_channels_last=True).to(self.device).to(memory_format=torch.channels_last)
+        if USE_FP16:
+            copy_network.half()
+        copy_network.load_state_dict(self.network.state_dict())
+        copy_network.eval()
+
         if self.jit_mode == 'trace':
             self.example_inputs_size = (min(self.memories.num_current_worker.value, MIN_EVALUATE_COUNT), BOARD_SIZE, BOARD_SIZE + INFO_SIZE)
             self.network_jit = torch.jit.trace(
-                copy.deepcopy(self.network).to(MODEL_DTYPE),
-                example_inputs=torch.empty(self.example_inputs_size, dtype=torch.int32, device=self.device),
+                copy_network,
+                example_inputs=torch.empty(self.example_inputs_size, dtype=torch.int32, device=self.device)
             )
         else:
-            self.network_jit = torch.jit.script(copy.deepcopy(self.network).to(MODEL_DTYPE))
+            self.network_jit = torch.jit.script(copy_network)
 
     def wait_and_evaluate(self, event, stop_event):
         while True:
@@ -161,7 +166,6 @@ class Agent:
 
     def on_wait(self):
         self.wait_process.start()
-        self.network.eval()
 
     def on_stop(self):
         self.stop_event.set()

@@ -4,7 +4,6 @@ import torch.nn.functional as F
 
 from config.NetworkConfig import FILTER_CHANNEL, SE_CHANNELS
 
-
 class SELayer(nn.Module):
     def __init__(self):
         super(SELayer, self).__init__()

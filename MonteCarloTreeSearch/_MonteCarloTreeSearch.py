@@ -1,6 +1,7 @@
+import time
+
 import numpy as np
 
-from Utils.Utils import Utils
 from config.ConfigManager import ConfigManager
 from Env.GameState import GameState
 from MonteCarloTreeSearch.MonteCarloNode import MonteCarloNode
@@ -29,11 +30,14 @@ class _MonteCarloTreeSearch:
             value = self.rollout(self.root, force_expand=True)
             self.root.backpropagate(value)
 
+        # start_time = time.time()
         for loop in range(MAX_THINK_LOOP):
             for simulation in range(self.config.NUM_SIMULATION):
                 leaf = self.traverse(self.root, self.config.NUM_SIMULATION - simulation)
                 simulation_result = self.rollout(leaf)
                 leaf.backpropagate(simulation_result)
+
+            # print(time.time() - start_time)
 
             best_child, pi = self.choose_child(self.root, temperature, check_kld=not loop==MAX_THINK_LOOP - 1)
             if best_child is not None:

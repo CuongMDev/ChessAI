@@ -3,11 +3,10 @@ from typing import Optional
 import numpy as np
 import scipy
 
-from Env.UciMapping import BOARD_SIZE
+from config.EnvConfig import BOARD_SIZE, INFO_SIZE
 from MonteCarloTreeSearch import MonteCarloNode
 from MonteCarloTreeSearch._MonteCarloTreeSearch import _MonteCarloTreeSearch
 from config.ConfigManager import ConfigManager
-from config.NetworkConfig import INFO_SIZE
 from config.config import PLAY_THREAD
 
 

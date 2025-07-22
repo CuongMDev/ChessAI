@@ -9,7 +9,7 @@ class MonteCarloTreeSearchTrain(_MonteCarloTreeSearch):
     def __init__(self, agent_memories: AgentMemories, config: ConfigManager, worker=0, fen=None, is_training=True,
                  auto_claim_draw=False):
         self.agent_memories = agent_memories
-        super().__init__(config, worker, fen, is_training, auto_claim_draw)\
+        super().__init__(config, worker, fen, is_training, auto_claim_draw)
 
     def get_evaluation(self, node, legal_move):
         state_tensor = torch.from_numpy(node.state.get_train_input())

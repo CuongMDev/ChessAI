@@ -1,4 +1,4 @@
-from Env.UciMapping import UciMapping, BOARD_SIZE, POLICY_OUT_CHANNEL
+from Env.UciMapping import UciMapping
 
 # Multiprocess
 NUM_WORKERS = 24
@@ -34,8 +34,8 @@ PLAY_THREAD = 32
 
 TEMPERATURE = 0.9
 TEMPERATURE_DELAY = 20
-TEMPERATURE_DECAY_MOVE = 60
-TEMPERATURE_ENDGAME = 0.3
+TEMPERATURE_DECAY_MOVE = 80
+TEMPERATURE_ENDGAME = 0.45
 TEMPERATURE_DECAY = TEMPERATURE / TEMPERATURE_DECAY_MOVE # linear
 TEMPERATURE_VISIT_OFFSET = -0.8
 GAME_EVALUATE = 50
@@ -60,11 +60,9 @@ LOSE_WEIGHTS = [1.0, 1.0] # policy, value
 
 # Environment
 EPISODE = 1000000
-PIECES_ORDER = '.KQRBNPkqrbnpE' # . must in 0, E: has ep
 
 # Socket
 host = '127.0.0.1'
 port = 12345
 
 LABELS_MAP = UciMapping()
-UCI_LABELS_MAP = LABELS_MAP.create_uci_labels_mask()

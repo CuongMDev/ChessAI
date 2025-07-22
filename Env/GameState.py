@@ -4,7 +4,8 @@ import numpy as np
 from chess import STARTING_FEN
 
 from Env.UciMapping import get_dict_value
-from config.config import PIECES_ORDER, BOARD_SIZE, LABELS_MAP, TABLEBASE_PATH, BONUS_END_POSITION
+from config.config import LABELS_MAP, TABLEBASE_PATH, BONUS_END_POSITION
+from config.EnvConfig import BOARD_SIZE, PIECES_ORDER
 
 TABLEBASE = chess.syzygy.open_tablebase(TABLEBASE_PATH)
 
