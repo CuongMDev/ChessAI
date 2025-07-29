@@ -14,6 +14,9 @@ Syzygy/*
 
 build/
 chess_build_env/
-cuda_lib/
+
+cuda_lib/*
+!cuda_lib/lib.txt
+
 GameProcess/
 game_socket.spec
