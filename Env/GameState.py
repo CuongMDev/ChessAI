@@ -1,3 +1,5 @@
+import os
+
 import chess
 import chess.syzygy
 import numpy as np
@@ -7,6 +9,8 @@ from Env.UciMapping import get_dict_value
 from config.config import LABELS_MAP, TABLEBASE_PATH, BONUS_END_POSITION
 from config.EnvConfig import BOARD_SIZE, PIECES_ORDER
 
+if not os.path.isdir(TABLEBASE_PATH):
+    os.makedirs(TABLEBASE_PATH)
 TABLEBASE = chess.syzygy.open_tablebase(TABLEBASE_PATH)
 
 class GameState:

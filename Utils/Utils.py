@@ -36,10 +36,12 @@ class Utils:
 
     @staticmethod
     def get_session(model_path):
-        providers = ort.get_available_providers()
-        if "CUDAExecutionProvider" in providers:
+        try:
+            session = ort.InferenceSession(model_path, providers=["CUDAExecutionProvider"])
             print("✅ Sử dụng GPU (CUDA)")
-            return ort.InferenceSession(model_path, providers=["CUDAExecutionProvider"])
-        else:
+        except Exception as e:
             print("⚠️ Không có GPU, fallback sang CPU")
-            return ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+            session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+
+        return session
+

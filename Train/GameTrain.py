@@ -16,7 +16,7 @@ from Train.TrainProcess import play_with_agent, train_with_self
 from config.NetworkConfig import EPOCHS, VALIDATION_SPLIT
 from config.config import EPISODE, GAME_EVALUATE, GAME_TRAIN_STEP, BATCH_SIZE, WIN_UPDATE_PERCENT \
     , NUM_WORKERS, PRETRAIN_FILE, PRETRAIN_GAME_ITERATION, PRETRAIN_EPOCHS, \
-    OPENING_FILE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP, USING_PRETRAIN
+    OPENING_FILE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP, USING_PRETRAIN, NO_PRETRAIN_LOSER
 
 
 class GameTrain:
@@ -141,7 +141,11 @@ class GameTrain:
                     if len(legal_moves) > 1:
                         pi[move] -= LABEL_SMOOTHING
 
-                    cache[-1].extend([pi, 2]) # not pretrain value
+                    cache[-1].extend([pi, 2]) # no pretrain value
+
+                result = game_state.result
+                if NO_PRETRAIN_LOSER and result != 0:
+                    cache = cache[::-1][0::2]
 
                 self.experience_replay.add_experiences(cache)
 
