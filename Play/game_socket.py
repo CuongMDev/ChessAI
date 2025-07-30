@@ -78,7 +78,8 @@ while True:
                 fen = received_data["fen"]
                 gameplay.reset(fen)
                 need_cancel.clear()
-                if play_with_bot and not human_play_first:
+                send_ai_act()
+                if gameplay.result() == '*' and play_with_bot and not human_play_first:
                     ai_thread = Thread(target=ai_move_thread)
                     ai_thread.start()
                     # done = False

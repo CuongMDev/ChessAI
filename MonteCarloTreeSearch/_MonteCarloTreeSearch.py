@@ -22,8 +22,11 @@ class _MonteCarloTreeSearch:
         else:
             self.root = MonteCarloNode(GameState(fen=fen))
 
-        self.is_start_position = self.root.state.is_start_position()
-        self.expand_first_root()
+        self.in_start_position = self.root.state.is_start_position()
+        if self.in_start_position:
+            self.expand_first_root()
+        else:
+            self.root.visit = 1
 
     def search(self, temperature):
         if not self.root.is_fully_expanded:
@@ -59,7 +62,7 @@ class _MonteCarloTreeSearch:
         # print(-self.root.children_info.average_values[move_node.id], flush=True)
         # print(max(-self.root.children_info.average_values), flush=True)
 
-        self.is_start_position = False
+        self.in_start_position = False
 
         # Node được chọn trở thành root mới
         self.root = move_node
@@ -99,7 +102,7 @@ class _MonteCarloTreeSearch:
         node = start_node
         if node.is_fully_expanded:
             while True:
-                node = start_node.best_child(ROOT_EXPLORATION_WEIGHT if self.is_start_position else self.config.EXPLORATION_WEIGHT)
+                node = start_node.best_child(ROOT_EXPLORATION_WEIGHT if self.in_start_position else self.config.EXPLORATION_WEIGHT)
                 if not self.is_training and start_node is self.root and not self.can_overtake_bestmove(node, remaining_visits):
                     start_node.children_info.priors[node.id] = -1e9  # no visit anymore
                     continue  # continue find new node

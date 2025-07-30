@@ -39,7 +39,7 @@ def play_with_agent(agent_memory, develop_agent_memory, results, num_game, openi
             agents_memories[i].change_current_worker_count(1)
             mcts[i] = MonteCarloTreeSearchTrain(agents_memories[i], config, worker, is_training=False, auto_claim_draw=True)
             mcts[i].root = MonteCarloNode(game_state)
-            mcts[i].is_start_position = mcts[i].root.state.is_start_position()
+            mcts[i].in_start_position = mcts[i].root.state.in_start_position()
             agents_memories[i].change_current_worker_count(-1)
 
         result = 0

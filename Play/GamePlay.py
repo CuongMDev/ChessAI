@@ -1,7 +1,8 @@
 from MonteCarloTreeSearch.MonteCarloTreeSearchPlay import MonteCarloTreeSearchPlay
 from Utils.Utils import Utils
 from config.ConfigManager import ConfigManager
-from config.config import SAVE_MODEL_PATH, MODEL_ONNX_NAME
+from config.config import SAVE_MODEL_PATH, MODEL_ONNX_NAME, TEMPERATURE
+
 
 class GamePlay:
     def __init__(self):
@@ -21,7 +22,7 @@ class GamePlay:
         self.mcts = MonteCarloTreeSearchPlay(self.session, self.config, fen=fen, is_training=False)
         self.step = 0
         self.claimed_draw = False
-        self.temperature = 0.9
+        self.temperature = TEMPERATURE if self.mcts.in_start_position else 0
 
     def set_search_config(self, num_simulation, search_thread):
         self.config.NUM_SIMULATION = int(num_simulation)
