@@ -1,8 +1,10 @@
 torch
 numpy
-chess==1.11.2
-numba==0.61.2
-python-chess==1.999
+chess
+numba
+python-chess
 scipy
 onnx 
 onnxruntime
+tqdm
+pyinstaller

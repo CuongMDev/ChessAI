@@ -22,7 +22,7 @@ class GamePlay:
         self.mcts = MonteCarloTreeSearchPlay(self.session, self.config, fen=fen, is_training=False)
         self.step = 0
         self.claimed_draw = False
-        self.temperature = TEMPERATURE if self.mcts.in_start_position else 0
+        self.temperature = TEMPERATURE if self.mcts.is_start_position else 0
 
     def set_search_config(self, num_simulation, search_thread):
         self.config.NUM_SIMULATION = int(num_simulation)

@@ -8,6 +8,7 @@ from multiprocessing import Value
 import chess.pgn
 import numpy as np
 import torch
+from tqdm.auto import tqdm
 
 from Agent.Agent import Agent
 from Agent.ExperienceReplay import ExperienceReplay
@@ -120,9 +121,12 @@ class GameTrain:
                 game = chess.pgn.read_game(pgn_file)
                 if game is None:
                     break  # Hết file
+                # if len(all_games) == 20:
+                #     break
                 all_games.append(game)
 
-        for _ in range(PRETRAIN_EPOCHS):
+        for epoch in range(PRETRAIN_EPOCHS):
+            pbar = tqdm(range((len(all_games) + PRETRAIN_GAME_ITERATION - 1) // PRETRAIN_GAME_ITERATION), desc=f"Epoch {epoch + 1}/{PRETRAIN_EPOCHS}")
             random.shuffle(all_games)
             for current_num_game, game in enumerate(all_games):
                 game_state = GameState()
@@ -150,12 +154,12 @@ class GameTrain:
                 self.experience_replay.add_experiences(cache)
 
                 if (current_num_game + 1) % PRETRAIN_GAME_ITERATION == 0 or current_num_game == len(all_games) - 1:
-                    print(current_num_game // PRETRAIN_GAME_ITERATION, end=' ', flush=True)
+                    pbar.update(1)
                     develop_agent, _, _ = self.train_agent(BATCH_SIZE, 1, 0)
                     self.agent.on_stop()
                     self.agent = develop_agent
                     self.experience_replay.reset()
-            print()
+            pbar.close()
 
         del all_games
         gc.collect()
