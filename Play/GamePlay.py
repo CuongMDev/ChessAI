@@ -3,7 +3,6 @@ from Utils.Utils import Utils
 from config.ConfigManager import ConfigManager
 from config.config import SAVE_MODEL_PATH, MODEL_ONNX_NAME, TEMPERATURE
 
-
 class GamePlay:
     def __init__(self):
         self.session = Utils.get_session(Utils.resource_path(SAVE_MODEL_PATH + MODEL_ONNX_NAME))
@@ -42,6 +41,9 @@ class GamePlay:
 
     def result(self):
         return self.mcts.root.state._env.result(claim_draw=self.claimed_draw)
+
+    def get_pgn(self):
+        return self.mcts.root.state.get_pgn()
 
     # Return move uci
     def ai_play(self):

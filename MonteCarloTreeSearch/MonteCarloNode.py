@@ -4,7 +4,6 @@ from Env.GameState import GameState
 from MonteCarloTreeSearch.NodeInformation import NodeInformation
 from config.config import VIRTUAL_LOSS
 
-
 class MonteCarloNode:
     def __init__(self, state: GameState = None, id = None, parent = None, last_move = None):
         self.state = state

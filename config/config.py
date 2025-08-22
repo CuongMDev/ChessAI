@@ -6,7 +6,7 @@ MIN_EVALUATE_COUNT = 16
 
 # Pretrain
 USING_PRETRAIN = True
-NO_PRETRAIN_LOSER = False
+NO_PRETRAIN_LOSER = True
 PRETRAIN_FILE = 'pretrain_data/pretrain.pgn'
 OPENING_FILE = 'pretrain_data/opening.pgn'
 PRETRAIN_GAME_ITERATION = 500

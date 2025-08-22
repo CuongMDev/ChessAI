@@ -4,6 +4,7 @@ import chess
 import chess.syzygy
 import numpy as np
 from chess import STARTING_FEN
+import chess.pgn
 
 from Env.UciMapping import get_dict_value
 from config.config import LABELS_MAP, TABLEBASE_PATH, BONUS_END_POSITION
@@ -28,6 +29,9 @@ class GameState:
 
     def ply(self):
         return self._env.ply()
+
+    def get_pgn(self):
+        return chess.pgn.Game.from_board(self._env)
 
     def chess_env_to_2d_board(self):
         turn = self._env.turn

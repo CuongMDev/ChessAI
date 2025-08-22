@@ -34,6 +34,16 @@ def send_ai_act(move_uci=None):
     json_data = json.dumps(data) + "\n"
     conn.sendall(json_data.encode())
 
+def send_pgn():
+    game = gameplay.get_pgn()
+    pgn_string = str(game)
+
+    data = {
+        "pgn": pgn_string
+    }
+    json_data = json.dumps(data) + "\n"
+    conn.sendall(json_data.encode())
+
 ai_thread = None
 def ai_move_thread():
     move_uci, done = gameplay.ai_play()
@@ -100,6 +110,8 @@ while True:
                 num_simulation = received_data["thinking_ability"] * 100
                 search_thread = received_data["search_thread"]
                 gameplay.set_search_config(num_simulation, search_thread)
+            elif "require_pgn" in received_data:
+                send_pgn()
 
         except Exception as e:
             # Lấy chuỗi traceback đầy đủ
