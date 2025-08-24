@@ -110,6 +110,8 @@ class Agent:
 
         loss_policy = self.loss_policy(policy, policy_target_no_mask)
         loss_value = self.loss_value(value, value_target + 1)
+        if torch.isnan(loss_value):
+            loss_value = 0
         loss = loss_policy * LOSE_WEIGHTS[0] + loss_value * LOSE_WEIGHTS[1]
 
         return loss

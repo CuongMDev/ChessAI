@@ -1,4 +1,4 @@
-INFO_SIZE = 6
+INFO_SIZE = 7
 BOARD_SIZE = 8
 POLICY_OUT_CHANNEL = 80
 PIECES_ORDER = '.KQRBNPkqrbnpE' # . must in 0, E: has ep

@@ -68,8 +68,10 @@ class GameState:
         reverse_turn_can_castle_king = self._env.has_kingside_castling_rights(not turn)
         reverse_turn_can_castle_queen = self._env.has_queenside_castling_rights(not turn)
         is_repetition = self._env.is_repetition(2)
+        turn = self._env.turn
         half_move = self._env.halfmove_clock
 
+        # half_move must be in last
         return np.concatenate([
                     board_2d,
                     np.full((BOARD_SIZE, 1), turn_can_castle_king, dtype=np.int32),
@@ -77,6 +79,7 @@ class GameState:
                     np.full((BOARD_SIZE, 1), reverse_turn_can_castle_king, dtype=np.int32),
                     np.full((BOARD_SIZE, 1), reverse_turn_can_castle_queen, dtype=np.int32),
                     np.full((BOARD_SIZE, 1), is_repetition, dtype=np.int32),
+                    np.full((BOARD_SIZE, 1), turn, dtype=np.int32),
                     np.full((BOARD_SIZE, 1), min(half_move, 100), dtype=np.int32),
         ], axis=1)
 

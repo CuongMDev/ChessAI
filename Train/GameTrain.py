@@ -8,6 +8,7 @@ from multiprocessing import Value
 import chess.pgn
 import numpy as np
 import torch
+from sklearn.model_selection import train_test_split
 from tqdm.auto import tqdm
 
 from Agent.Agent import Agent
@@ -17,7 +18,8 @@ from Train.TrainProcess import play_with_agent, train_with_self
 from config.NetworkConfig import EPOCHS, VALIDATION_SPLIT
 from config.config import EPISODE, GAME_EVALUATE, GAME_TRAIN_STEP, BATCH_SIZE, WIN_UPDATE_PERCENT \
     , NUM_WORKERS, PRETRAIN_FILE, PRETRAIN_GAME_ITERATION, PRETRAIN_EPOCHS, \
-    OPENING_FILE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP, USING_PRETRAIN, NO_PRETRAIN_LOSER
+    OPENING_FILE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP, USING_PRETRAIN, NO_PRETRAIN_LOSER, STOP_LEARNING_RATE, \
+    PRETRAIN_VAL_STEP, PRETRAIN_VALIDATION_SPLIT
 
 
 class GameTrain:
@@ -109,6 +111,31 @@ class GameTrain:
             if self.time_not_update_model % UPDATE_LR_STEP == 0:
                 self.agent.scheduler.step()
 
+    def game_to_experiences(self, game):
+        game_state = GameState()
+        cache = []  # state, the best policy, reward
+        for chess_move in game.mainline_moves():
+            cache.append([game_state.get_train_input()])
+            pi = np.zeros(len(LABELS_MAP.labels_array))
+            legal_moves = game_state.get_legal_moves()
+            if len(legal_moves) > 1:
+                pi[legal_moves] = 1 + LABEL_SMOOTHING / (len(legal_moves) - 1)
+
+            move = game_state.real_uci_to_move(chess_move.uci())
+            game_state = game_state.perform_move(move)
+
+            pi[move] = 2
+            if len(legal_moves) > 1:
+                pi[move] -= LABEL_SMOOTHING
+
+            cache[-1].extend([pi, 2])  # no pretrain value
+
+        result = game_state.result
+        if NO_PRETRAIN_LOSER and result != 0:
+            cache = cache[::-1][0::2]
+
+        self.experience_replay.add_experiences(cache)
+
     def pretrain(self):
         print('-------pretrain-------')
         if self.device.type == 'cuda':
@@ -121,52 +148,53 @@ class GameTrain:
                 game = chess.pgn.read_game(pgn_file)
                 if game is None:
                     break  # Hết file
-                # if len(all_games) == 20:
+                # if len(all_games) == 5:
                 #     break
                 all_games.append(game)
 
+        train_games, val_games = train_test_split(all_games, test_size=PRETRAIN_VALIDATION_SPLIT, random_state=42)
+        pre_val_loss = 1e9
         for epoch in range(PRETRAIN_EPOCHS):
-            pbar = tqdm(range((len(all_games) + PRETRAIN_GAME_ITERATION - 1) // PRETRAIN_GAME_ITERATION), desc=f"Epoch {epoch + 1}/{PRETRAIN_EPOCHS}")
-            random.shuffle(all_games)
-            for current_num_game, game in enumerate(all_games):
-                game_state = GameState()
-                cache = []  # state, the best policy, reward
-                for chess_move in game.mainline_moves():
-                    cache.append([game_state.get_train_input()])
-                    pi = np.zeros(len(LABELS_MAP.labels_array))
-                    legal_moves = game_state.get_legal_moves()
-                    if len(legal_moves) > 1:
-                        pi[legal_moves] = 1 + LABEL_SMOOTHING / (len(legal_moves) - 1)
-
-                    move = game_state.real_uci_to_move(chess_move.uci())
-                    game_state = game_state.perform_move(move)
-
-                    pi[move] = 2
-                    if len(legal_moves) > 1:
-                        pi[move] -= LABEL_SMOOTHING
-
-                    cache[-1].extend([pi, 2]) # no pretrain value
-
-                result = game_state.result
-                if NO_PRETRAIN_LOSER and result != 0:
-                    cache = cache[::-1][0::2]
-
-                self.experience_replay.add_experiences(cache)
-
-                if (current_num_game + 1) % PRETRAIN_GAME_ITERATION == 0 or current_num_game == len(all_games) - 1:
+            pbar = tqdm(range((len(train_games) + PRETRAIN_GAME_ITERATION - 1) // PRETRAIN_GAME_ITERATION), desc=f"Epoch {epoch + 1}/{PRETRAIN_EPOCHS}")
+            random.shuffle(train_games)
+            for current_num_game, game in enumerate(train_games):
+                self.game_to_experiences(game)
+                if (current_num_game + 1) % PRETRAIN_GAME_ITERATION == 0 or current_num_game == len(train_games) - 1:
+                    develop_agent, train_loss, _ = self.train_agent(BATCH_SIZE, 1, 0)
                     pbar.update(1)
-                    develop_agent, _, _ = self.train_agent(BATCH_SIZE, 1, 0)
+                    pbar.set_postfix(loss=train_loss[-1])
                     self.agent.on_stop()
                     self.agent = develop_agent
                     self.experience_replay.reset()
+
+                    if pbar.n % PRETRAIN_VAL_STEP == 0 or pbar.n == pbar.total:
+                        for val_game in val_games:
+                            self.game_to_experiences(val_game)
+
+                        val_loader, _ = self.experience_replay.get_all_data(batch_size=BATCH_SIZE)
+                        val_loss = self.agent.validate(val_loader)
+                        print(f'Validation Loss: {val_loss:.4f}')
+                        if pre_val_loss > val_loss:
+                            pre_val_loss = val_loss
+                            self.agent.save_checkpoint()
+
+                        self.experience_replay.delete_device_memory()
+                        self.experience_replay.reset()
             pbar.close()
 
         del all_games
+        del train_games
+        del val_games
         gc.collect()
 
         end_time = time.time()
         print(f"{end_time - start_time:.2f}s")
+        self.agent.on_stop()
+
+        self.agent = Agent(self.device)
+        self.agent.load_checkpoint()
         self.agent.scheduler.step()
+
         self.agent.save_checkpoint()
 
     def self_play_train(self):
@@ -206,10 +234,15 @@ class GameTrain:
                 print(f"val_loss: {val_loss}")
 
                 self.update_agent(develop_agent)
+                current_lr = self.agent.optimizer.param_groups[0]['lr']
+                if current_lr <= STOP_LEARNING_RATE:
+                    break
 
             end_time = time.time()
             print(f"{end_time - start_time:.2f}s")
             start_time = time.time()
+            
+        print('Finished')
 
     def train(self):
         if USING_PRETRAIN and not self.pretrained:
