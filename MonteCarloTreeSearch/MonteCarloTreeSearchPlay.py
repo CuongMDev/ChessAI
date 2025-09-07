@@ -3,7 +3,7 @@ from typing import Optional
 import numpy as np
 import scipy
 
-from config.EnvConfig import BOARD_SIZE, INFO_SIZE
+from config.EnvConfig import FULL_INPUT_STATES
 from MonteCarloTreeSearch import MonteCarloNode
 from MonteCarloTreeSearch._MonteCarloTreeSearch import _MonteCarloTreeSearch
 from config.ConfigManager import ConfigManager
@@ -29,13 +29,13 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
         self.need_evaluate_node: list[Optional[MonteCarloNode]] = [None] * self.play_thread
         self.is_traversing_node: list[Optional[MonteCarloNode]] = [None] * self.play_thread
 
-    def add_traversing(self, left_simulation, start_node: MonteCarloNode = None):
+    def add_traversing(self, left_simulation, use_smart_pruning, start_node: MonteCarloNode = None):
         if start_node is None:
             node = self.root
         else:
             node = start_node
 
-        leaf = self.traverse(node, left_simulation)
+        leaf = self.traverse(node, left_simulation, use_smart_pruning=use_smart_pruning)
 
         if leaf.is_evaluating:
             leaf.backpropagate_virtual_loss(remove_virtual_loss=False, stop_node=start_node)
@@ -63,11 +63,11 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
             self.current_traversing_pos = 0
             self.current_evaluate_pos = 0
             for i in range(traversing_num):
-                self.add_traversing(num_simulation + traversing_num - i, self.is_traversing_node[i])
+                self.add_traversing(num_simulation + traversing_num - i, use_smart_pruning=temperature == 0, start_node=self.is_traversing_node[i])
 
             new_traverse_num = min(self.play_thread - self.current_evaluate_pos - self.current_traversing_pos, num_simulation)
             for i in range(new_traverse_num):
-                self.add_traversing(num_simulation)
+                self.add_traversing(num_simulation, use_smart_pruning=temperature == 0)
                 num_simulation -= 1
 
             policies, values = self.get_all_evaluation()
@@ -92,15 +92,15 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
             return best_child, pi
 
     def get_all_evaluation(self):
-        all_states = np.empty((self.current_evaluate_pos, BOARD_SIZE, BOARD_SIZE + INFO_SIZE), dtype=np.int32)
+        all_states = np.empty((self.current_evaluate_pos, FULL_INPUT_STATES), dtype=np.int64)
         for i in range(self.current_evaluate_pos):
-            all_states[i] = self.need_evaluate_node[i].state.get_train_input()
+            all_states[i] = self.need_evaluate_node[i].state.get_network_input()
 
         policies, values = self.session.run(None, {self.input_name: all_states})
         return policies, values
 
     def get_evaluation(self, node, legal_move):
-        state = node.state.get_train_input()[np.newaxis, :]
+        state = node.state.get_network_input()[np.newaxis, :]
 
         policy, value = self.session.run(None, {self.input_name: state})
         policy = policy.squeeze()[legal_move]

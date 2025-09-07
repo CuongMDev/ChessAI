@@ -4,14 +4,15 @@ from threading import Thread, Event
 import torch
 from torch import optim, nn
 
+from Agent.AgentMemories import AgentMemories
 from Agent.CustomLearningRate import CustomLearningRateSchedule
 from Agent.Network.Network import Network
-from Agent.AgentMemories import AgentMemories
 from config.NetworkConfig import VALIDATION_STEP, USE_FP16
 from config.config import LEARNING_RATE, SAVE_MODEL_PATH, L2_CONST, DECAY_RATE, \
     NUM_WORKERS, MIN_EVALUATE_COUNT, MODEL_NAME, MOMENTUM, LOSE_WEIGHTS, \
     MAX_GRAD_NORM
-from config.EnvConfig import BOARD_SIZE, INFO_SIZE
+from config.EnvConfig import FULL_INPUT_STATES
+
 
 class Agent:
     def __init__(self, device, num_worker=NUM_WORKERS, min_evaluate_count=MIN_EVALUATE_COUNT):
@@ -134,10 +135,10 @@ class Agent:
         copy_network.eval()
 
         if self.jit_mode == 'trace':
-            self.example_inputs_size = (min(self.memories.num_current_worker.value, MIN_EVALUATE_COUNT), BOARD_SIZE, BOARD_SIZE + INFO_SIZE)
+            self.example_inputs_size = (min(self.memories.num_current_worker.value, MIN_EVALUATE_COUNT), FULL_INPUT_STATES)
             self.network_jit = torch.jit.trace(
                 copy_network,
-                example_inputs=torch.empty(self.example_inputs_size, dtype=torch.int32, device=self.device)
+                example_inputs=torch.empty(self.example_inputs_size, dtype=torch.long, device=self.device)
             )
         else:
             self.network_jit = torch.jit.script(copy_network)

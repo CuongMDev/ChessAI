@@ -36,7 +36,7 @@ class _MonteCarloTreeSearch:
         # start_time = time.time()
         for loop in range(MAX_THINK_LOOP):
             for simulation in range(self.config.NUM_SIMULATION):
-                leaf = self.traverse(self.root, self.config.NUM_SIMULATION - simulation)
+                leaf = self.traverse(self.root, self.config.NUM_SIMULATION - simulation, use_smart_pruning=not self.is_training)
                 simulation_result = self.rollout(leaf)
                 leaf.backpropagate(simulation_result)
 
@@ -98,12 +98,12 @@ class _MonteCarloTreeSearch:
     def get_evaluation(self, node, legal_move):
         pass
 
-    def traverse(self, start_node, remaining_visits) -> MonteCarloNode:
+    def traverse(self, start_node, remaining_visits, use_smart_pruning) -> MonteCarloNode:
         node = start_node
         if node.is_fully_expanded:
             while True:
                 node = start_node.best_child(ROOT_EXPLORATION_WEIGHT if self.is_start_position else self.config.EXPLORATION_WEIGHT)
-                if not self.is_training and start_node is self.root and not self.can_overtake_bestmove(node, remaining_visits):
+                if use_smart_pruning and start_node is self.root and not self.can_overtake_bestmove(node, remaining_visits):
                     start_node.children_info.priors[node.id] = -1e9  # no visit anymore
                     continue  # continue find new node
                 break

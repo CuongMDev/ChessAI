@@ -14,7 +14,7 @@ class UciMapping:
     __knight_directions = [ (2, 1), (1, 2), (-1, 2), (-2, 1), (-2, -1), (-1, -2), (1, -2), (2, -1) ]
 
     __letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-    __numbers = ['1', '2', '3', '4', '5', '6', '7', '8']
+    __numbers = ['8', '7', '6', '5', '4', '3', '2', '1']
     __promoted_to = ['q', 'r', 'b', 'n']
 
     def __init__(self):
@@ -66,7 +66,7 @@ class UciMapping:
             f = len(UciMapping.__rook_directions) * 7 + len(
                 UciMapping.__bishop_directions) * 7 + UciMapping.__knight_directions.index((dl, dr))
 
-        return f * BOARD_SIZE ** 2 + l1 * BOARD_SIZE + n1
+        return f * BOARD_SIZE ** 2 + n1 * BOARD_SIZE + l1
 
     @staticmethod
     def __create_uci_labels():

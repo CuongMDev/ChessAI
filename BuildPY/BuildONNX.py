@@ -1,29 +1,35 @@
+import sys
+
 import torch
 
 from Agent.Network.Network import Network
-from config.EnvConfig import INFO_SIZE, BOARD_SIZE
 from config.config import SAVE_MODEL_PATH, MODEL_NAME
+from config.EnvConfig import FULL_INPUT_STATES
 
 checkpoint = torch.load(SAVE_MODEL_PATH + MODEL_NAME, map_location='cpu')
 model = Network()
 model.load_state_dict(checkpoint['network_state_dict'])
 model.eval()
 
-dummy_input = torch.empty(1, BOARD_SIZE, BOARD_SIZE + INFO_SIZE, dtype=torch.int32)
+dummy_input = torch.empty(1, FULL_INPUT_STATES, dtype=torch.long)
 
-torch.onnx.export(
-    model,
-    (dummy_input,),
-    "saved_model/chess_model.onnx",
-    export_params=True,
-    opset_version=15,
-    do_constant_folding=True,
-    input_names=['board-states'],
-    output_names=['policies-values'],
-    dynamic_axes = {
-        'board-states': {0: 'batch_size'},  # batch size là dynamic
-        'policies-values': {0: 'batch_size'}  # output cũng theo batch
-    }
-)
-
-print('success')
+try:
+    torch.onnx.export(
+        model,
+        (dummy_input,),
+        "saved_model/chess_model.onnx",
+        export_params=True,
+        opset_version=18,
+        do_constant_folding=True,
+        input_names=['board-states'],
+        output_names=['policies-values'],
+        dynamic_axes={
+            'board-states': {0: 'batch_size'},
+            'policies-values': {0: 'batch_size'}
+        }
+    )
+    print("success")
+except Exception as e:
+    print("Export failed:", e)
+    input("Press Enter to exit...")  # giữ màn hình để đọc lỗi
+    sys.exit(1)

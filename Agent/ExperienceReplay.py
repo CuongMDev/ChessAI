@@ -3,15 +3,15 @@ from multiprocessing import Value
 import torch
 from torch.utils.data import DataLoader, Dataset, Subset
 
-from config.EnvConfig import INFO_SIZE, BOARD_SIZE
 from config.NetworkConfig import DEVICE
 from config.config import EXP_MAX, LABELS_MAP
+from config.EnvConfig import FULL_INPUT_STATES
 
 
 class ExperienceReplay(Dataset):
     def __init__(self, pre_data=None):
         if pre_data is None:
-            self.memory_state = torch.empty(EXP_MAX, BOARD_SIZE, BOARD_SIZE + INFO_SIZE, dtype=torch.int32).share_memory_()
+            self.memory_state = torch.empty(EXP_MAX, FULL_INPUT_STATES, dtype=torch.long).share_memory_()
             self.memory_pi = torch.empty(EXP_MAX, len(LABELS_MAP.labels_array)).share_memory_()
             self.memory_reward = torch.empty(EXP_MAX, dtype=torch.long).share_memory_()
             self.game_index = torch.empty(EXP_MAX, dtype=torch.long).share_memory_()

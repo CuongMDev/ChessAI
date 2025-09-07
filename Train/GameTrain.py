@@ -19,7 +19,7 @@ from config.NetworkConfig import EPOCHS, VALIDATION_SPLIT
 from config.config import EPISODE, GAME_EVALUATE, GAME_TRAIN_STEP, BATCH_SIZE, WIN_UPDATE_PERCENT \
     , NUM_WORKERS, PRETRAIN_FILE, PRETRAIN_GAME_ITERATION, PRETRAIN_EPOCHS, \
     OPENING_FILE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP, USING_PRETRAIN, NO_PRETRAIN_LOSER, STOP_LEARNING_RATE, \
-    PRETRAIN_VAL_STEP, PRETRAIN_VALIDATION_SPLIT
+    PRETRAIN_VAL_STEP, PRETRAIN_VALIDATION_SPLIT, PRETRAIN_SKIP_VAL_OPENING_STEP
 
 
 class GameTrain:
@@ -32,8 +32,11 @@ class GameTrain:
         self.time_not_update_model = 0
         self.pretrained = self.agent.load_checkpoint()
 
-    def train_agent(self, batch_size: int, epochs: int, validation_split: float):
-        develop_agent = self.agent.copy()
+    def train_agent(self, batch_size: int, epochs: int, validation_split: float, inplace=False):
+        if inplace:
+            develop_agent = self.agent
+        else:
+            develop_agent = self.agent.copy()
 
         train_loader, val_loader = self.experience_replay.get_all_data(batch_size, validation_split)
         train_loss, val_loss = develop_agent.fit(train_loader, epochs=epochs, val_loader=val_loader)
@@ -115,7 +118,7 @@ class GameTrain:
         game_state = GameState()
         cache = []  # state, the best policy, reward
         for chess_move in game.mainline_moves():
-            cache.append([game_state.get_train_input()])
+            cache.append([game_state.get_network_input()])
             pi = np.zeros(len(LABELS_MAP.labels_array))
             legal_moves = game_state.get_legal_moves()
             if len(legal_moves) > 1:
@@ -130,9 +133,12 @@ class GameTrain:
 
             cache[-1].extend([pi, 2])  # no pretrain value
 
-        result = game_state.result
-        if NO_PRETRAIN_LOSER and result != 0:
-            cache = cache[::-1][0::2]
+        result = game.headers.get("Result")
+        if NO_PRETRAIN_LOSER and result != '1/2-1/2':
+            if result == '1-0':
+                cache = cache[0::2]
+            else:
+                cache = cache[1::2]
 
         self.experience_replay.add_experiences(cache)
 
@@ -148,7 +154,7 @@ class GameTrain:
                 game = chess.pgn.read_game(pgn_file)
                 if game is None:
                     break  # Hết file
-                # if len(all_games) == 5:
+                # if len(all_games) == 10:
                 #     break
                 all_games.append(game)
 
@@ -160,16 +166,14 @@ class GameTrain:
             for current_num_game, game in enumerate(train_games):
                 self.game_to_experiences(game)
                 if (current_num_game + 1) % PRETRAIN_GAME_ITERATION == 0 or current_num_game == len(train_games) - 1:
-                    develop_agent, train_loss, _ = self.train_agent(BATCH_SIZE, 1, 0)
+                    develop_agent, train_loss, _ = self.train_agent(BATCH_SIZE, 1, 0, inplace=True)
                     pbar.update(1)
                     pbar.set_postfix(loss=train_loss[-1])
-                    self.agent.on_stop()
-                    self.agent = develop_agent
                     self.experience_replay.reset()
 
                     if pbar.n % PRETRAIN_VAL_STEP == 0 or pbar.n == pbar.total:
-                        for val_game in val_games:
-                            self.game_to_experiences(val_game)
+                        for i in range(PRETRAIN_SKIP_VAL_OPENING_STEP, len(val_games)):
+                            self.game_to_experiences(val_games[i])
 
                         val_loader, _ = self.experience_replay.get_all_data(batch_size=BATCH_SIZE)
                         val_loss = self.agent.validate(val_loader)

@@ -12,7 +12,7 @@ class MonteCarloTreeSearchTrain(_MonteCarloTreeSearch):
         super().__init__(config, worker, fen, is_training, auto_claim_draw)
 
     def get_evaluation(self, node, legal_move):
-        state_tensor = torch.from_numpy(node.state.get_train_input())
+        state_tensor = torch.from_numpy(node.state.get_network_input())
         self.agent_memories.add_evaluation_req(self.worker, state_tensor, legal_move)
         self.agent_memories.share_valid_data[self.worker].wait()
 

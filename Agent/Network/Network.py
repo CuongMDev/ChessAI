@@ -3,11 +3,10 @@ import torch.nn.functional as F
 from torch import nn
 
 from Agent.Network.ResidualBlock import ResidualBlock
-from config.EnvConfig import INFO_SIZE, BOARD_SIZE, POLICY_OUT_CHANNEL, PIECES_ORDER
+from config.EnvConfig import BOARD_SIZE, POLICY_OUT_CHANNEL, INPUT_PIECE_STATES, FULL_INPUT_STATES
 from config.NetworkConfig import FILTER_CHANNEL, VALUE_FC_SIZE, RES_LAYER_NUM, \
-    FILTER_SIZE, EXTEND_INFO
+    FILTER_SIZE, EXTEND_INFO, POW2_MASK
 from config.config import LABELS_MAP
-
 
 class Network(nn.Module):
     def __init__(self, use_fp16=False, use_channels_last=False):
@@ -15,12 +14,13 @@ class Network(nn.Module):
 
         self.register_buffer('MASK_INDEX', torch.from_numpy(LABELS_MAP.mask_index), persistent=False)
         self.register_buffer('EXTEND_INFO', torch.from_numpy(EXTEND_INFO), persistent=False)
+        self.register_buffer("POW2_MASK", POW2_MASK, persistent=False)
 
         self.use_channels_last = use_channels_last
         self.use_fp16 = use_fp16
 
         # common
-        self.conv = nn.Conv2d(in_channels=INFO_SIZE + len(PIECES_ORDER) - 1 + len(EXTEND_INFO), out_channels=FILTER_CHANNEL, kernel_size=FILTER_SIZE, bias=False, padding='same') # -1 dấu .
+        self.conv = nn.Conv2d(in_channels=FULL_INPUT_STATES + len(EXTEND_INFO), out_channels=FILTER_CHANNEL, kernel_size=FILTER_SIZE, bias=False, padding='same') # -1 dấu .
         self.batch_norm = nn.BatchNorm2d(FILTER_CHANNEL)
         self.residual_blocks = nn.ModuleList([ResidualBlock() for _ in range(RES_LAYER_NUM)])
 
@@ -36,16 +36,21 @@ class Network(nn.Module):
         self.val_fc2 = nn.Linear(VALUE_FC_SIZE, 3)
 
     @torch.jit.ignore
-    def one_hot(self, x):
-        board = x[:, :, :BOARD_SIZE]
-        half_move = x[:, :, -1] / 100
+    def extends(self, x):
+        # chuẩn bị mask cho 64 bit
+        board = x[:, :INPUT_PIECE_STATES]
+        bits = (board.unsqueeze(-1) & self.POW2_MASK).to(torch.bool)  # (..., 64)
+        board_extended = bits.view(*board.shape, BOARD_SIZE, BOARD_SIZE)  # reshape 8x8
 
-        board_one_hot = torch.stack([(board == i)
-                             for i in range(1, len(PIECES_ORDER))]
-                            ).transpose(0, 1)  # one hot chess piece
-        info = torch.cat((x[:, :, BOARD_SIZE:-1], half_move.unsqueeze(-1)), dim=2).transpose(1, 2).unsqueeze(2).expand(x.size(0), INFO_SIZE, BOARD_SIZE, BOARD_SIZE)
+        info = x[:, INPUT_PIECE_STATES:, None, None].expand(-1, -1, BOARD_SIZE, BOARD_SIZE).to(torch.float32)
+        info[:, -1, :, :] /= 100 # half move / 100
 
-        x = torch.cat([board_one_hot, info, self.EXTEND_INFO.unsqueeze(0).expand(x.shape[0], -1, -1, -1)], dim=1)
+        x = torch.cat([
+            board_extended,
+            info,
+            self.EXTEND_INFO.unsqueeze(0).expand(x.shape[0], -1, -1, -1)
+        ], dim=1)
+
         if self.use_fp16:
             x = x.half()
         else:
@@ -59,7 +64,7 @@ class Network(nn.Module):
         return x
 
     def forward(self, x):
-        x = self.one_hot(x)
+        x = self.extends(x)
 
         # common layers
         x = self.conv(x)

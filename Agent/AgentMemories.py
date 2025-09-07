@@ -2,15 +2,15 @@ from multiprocessing import Event, Value
 
 import torch
 
-from config.EnvConfig import INFO_SIZE, BOARD_SIZE
 from config.config import NUM_WORKERS, MIN_EVALUATE_COUNT
+from config.EnvConfig import FULL_INPUT_STATES
 
 
 class AgentMemories:
     def __init__(self, pre_data=None, num_workers=NUM_WORKERS, min_evaluate_count=MIN_EVALUATE_COUNT):
         # shared memory
         if pre_data is None:
-            self.share_input = torch.zeros(num_workers, BOARD_SIZE, BOARD_SIZE + INFO_SIZE, dtype=torch.int32).share_memory_() # -1 thông tin ep
+            self.share_input = torch.zeros(num_workers, FULL_INPUT_STATES, dtype=torch.long).share_memory_() # -1 thông tin ep
             self.share_input_mask = torch.zeros(num_workers, 512, dtype=torch.int32).share_memory_()
             self.share_input_mask_size = torch.zeros(num_workers, dtype=torch.int32).share_memory_()
 
