@@ -9,7 +9,7 @@ import chess.pgn
 from Env.UciMapping import get_dict_value
 from Utils.Utils import Utils
 from config.config import LABELS_MAP, TABLEBASE_PATH, BONUS_END_POSITION
-from config.EnvConfig import BOARD_SIZE, PIECES_ORDER, INPUT_PIECE_STATES
+from config.EnvConfig import BOARD_SIZE, PIECES_ORDER, INPUT_PIECE_STATES, HISTORY_STATE_COUNTS
 
 if not os.path.isdir(TABLEBASE_PATH):
     os.makedirs(TABLEBASE_PATH)
@@ -23,11 +23,11 @@ class GameState:
             self._env = pre_env
 
         if history_state is None:
-            self.all_board_states = np.zeros(INPUT_PIECE_STATES, dtype=np.int64)
+            self.all_board_states = np.empty(0, dtype=np.int64)
         else:
             self.all_board_states = history_state
 
-        board_one_hot = self.chess_env_to_one_hot_board()
+        board_one_hot = self.chess_env_to_one_hot_board(self._env)
         self.all_board_states = np.concatenate((self.all_board_states, board_one_hot))[-INPUT_PIECE_STATES:]
 
         self.is_terminate = False
@@ -42,8 +42,9 @@ class GameState:
     def get_pgn(self):
         return chess.pgn.Game.from_board(self._env)
 
-    def chess_env_to_one_hot_board(self):
-        turn = self._env.turn
+    @staticmethod
+    def chess_env_to_one_hot_board(_env):
+        turn = _env.turn
 
         # Chuyển đổi bàn cờ thành mảng 2D, mỗi ô chứa ký tự đại diện quân cờ
         board_one_hot = np.zeros(len(PIECES_ORDER), dtype=np.int64)
@@ -51,15 +52,15 @@ class GameState:
             # Lấy mỗi hàng từ bàn cờ và chuyển thành mảng con
             for col in range(BOARD_SIZE):
                 square = chess.square(col, BOARD_SIZE - 1 - row if turn == chess.WHITE else row)  # Để đảm bảo thứ tự từ dưới lên
-                piece = self._env.piece_at(square)
+                piece = _env.piece_at(square)
                 if piece is not None:
                     piece = PIECES_ORDER.index(piece.symbol() if turn == chess.WHITE else piece.symbol().swapcase())  # Lấy ký tự của quân cờ
                     board_one_hot[piece] |= np.int64(1) << chess.square(col, row)
 
-        if self._env.has_legal_en_passant():
-            ep_square = self._env.ep_square
+        if _env.has_legal_en_passant():
+            ep_square = _env.ep_square
             if turn == chess.WHITE:
-                ep_square = self.__flip_rank(ep_square)
+                ep_square = GameState.__flip_rank(ep_square)
             board_one_hot[PIECES_ORDER.index('E')] = np.int64(1) << ep_square
 
         return board_one_hot
@@ -68,7 +69,7 @@ class GameState:
         return self._env.fen() == chess.STARTING_FEN
 
     def get_network_input(self):
-        board_2d = np.array(self.all_board_states, dtype=np.int64)
+        board_2d = np.pad(self.all_board_states, (INPUT_PIECE_STATES - len(self.all_board_states), 0), mode='constant', constant_values=0)
 
         turn = self._env.turn
         # half_move must be in last
@@ -83,18 +84,38 @@ class GameState:
                 min(100, self._env.halfmove_clock)
             ], dtype=np.int64)
 
-    def inverse_history(self):
-        inverse_history = np.zeros(INPUT_PIECE_STATES - 1, dtype=np.int64) # not get ep
-        for i in range(0, len(self.all_board_states) - 1, len(PIECES_ORDER) - 1): # not get ep
+    @staticmethod
+    def inverse_history(all_board_states):
+        inverse_history = np.zeros(len(all_board_states) - 1, dtype=np.int64) # not get ep
+        for i in range(0, len(all_board_states) - 1, len(PIECES_ORDER) - 1): # not get ep
             for j in range(len(PIECES_ORDER) - 1):
                 piece_j = PIECES_ORDER[j]
-                inverse_history[i + j] = Utils.flip_rows(self.all_board_states[i + PIECES_ORDER.index(piece_j.swapcase())])
+                inverse_history[i + j] = Utils.flip_rows(all_board_states[i + PIECES_ORDER.index(piece_j.swapcase())])
 
         return inverse_history
 
     def rollback(self):
-        previous_state = GameState(self._env.copy(stack=True))
-        previous_state._env.pop()
+        temp_env = self._env.copy(stack=True)
+        not_enough_move = False
+        for _ in range(HISTORY_STATE_COUNTS):
+            if not temp_env.move_stack:
+                not_enough_move = True
+                break
+            temp_env.pop()
+
+        previous_2_history = GameState.inverse_history(self.all_board_states)[:-2 * (len(PIECES_ORDER) - 1)]
+        if not not_enough_move:
+            history_board_one_hot = GameState.chess_env_to_one_hot_board(temp_env)
+            if HISTORY_STATE_COUNTS % 2:
+                history_board_one_hot = history_board_one_hot[:-1] # not get ep
+            else:
+                history_board_one_hot = GameState.inverse_history(history_board_one_hot)
+
+            previous_2_history = np.concatenate((history_board_one_hot, previous_2_history))
+
+        previous_env = self._env.copy(stack=True)
+        previous_env.pop()
+        previous_state = GameState(previous_env, history_state=previous_2_history)
         return previous_state
 
     @staticmethod
@@ -145,7 +166,7 @@ class GameState:
             chess_move = self.__flip_move_vertically(chess_move)
         new_env.push(chess_move)
 
-        new_state = GameState(new_env, history_state=self.inverse_history())
+        new_state = GameState(new_env, history_state=GameState.inverse_history(self.all_board_states))
         wdl = TABLEBASE.get_wdl(new_state._env)
         if wdl is not None:
             if new_state._env.halfmove_clock + abs(TABLEBASE.probe_dtz(new_state._env)) < 100:
