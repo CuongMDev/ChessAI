@@ -57,18 +57,25 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
             value = self.rollout(self.root, force_expand=True)
             self.root.backpropagate(value)
 
+        use_smart_pruning = temperature == 0
+
         num_simulation = self.config.NUM_SIMULATION
         while num_simulation + self.current_traversing_pos > 0:
             traversing_num = self.current_traversing_pos
             self.current_traversing_pos = 0
             self.current_evaluate_pos = 0
             for i in range(traversing_num):
-                self.add_traversing(num_simulation + traversing_num - i, use_smart_pruning=temperature == 0, start_node=self.is_traversing_node[i])
+                self.add_traversing(num_simulation + traversing_num - i, use_smart_pruning=use_smart_pruning, start_node=self.is_traversing_node[i])
 
             new_traverse_num = min(self.play_thread - self.current_evaluate_pos - self.current_traversing_pos, num_simulation)
+
+            stop_early=False
             for i in range(new_traverse_num):
-                self.add_traversing(num_simulation, use_smart_pruning=temperature == 0)
+                self.add_traversing(num_simulation, use_smart_pruning=use_smart_pruning)
                 num_simulation -= 1
+                if use_smart_pruning and self.can_stop_early(num_simulation):
+                    stop_early=True
+                    break
 
             policies, values = self.get_all_evaluation()
             for i in range(self.current_evaluate_pos):
@@ -86,6 +93,13 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
                 node.expand(policy_i, max(-1, value_i - self.config.FPU_VALUE))
                 node.backpropagate_virtual_loss(remove_virtual_loss=True)
                 node.backpropagate(value_i)
+
+            if stop_early:
+                # clean
+                for i in range(self.current_traversing_pos):
+                    self.is_traversing_node[i].backpropagate_virtual_loss(remove_virtual_loss=True)
+                self.current_traversing_pos = 0
+                break
 
         best_child, pi = self.choose_child(self.root, temperature)
         if best_child is not None:

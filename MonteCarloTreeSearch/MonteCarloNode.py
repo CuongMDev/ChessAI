@@ -15,7 +15,8 @@ class MonteCarloNode:
         self.children_info = None
         self.visit = 0
         self.value = 0
-        self.best_child_visit = 0
+        self.best_child_visit_id = 0
+        self.second_child_visit_id = -1
         self.id = id
 
         self.is_evaluating = False # use for play
@@ -51,6 +52,14 @@ class MonteCarloNode:
             self.parent.children_info.values[self.id] = self.value
             self.parent.children_info.average_values[self.id] = self.state.result
 
+    def maximize_child_visit_id(self, child_id):
+        if self.best_child_visit_id != child_id:
+            if self.children_info.visits[self.best_child_visit_id] < self.children_info.visits[child_id]:
+                self.second_child_visit_id = self.best_child_visit_id
+                self.best_child_visit_id = child_id
+            elif self.children_info.visits[self.second_child_visit_id] < self.children_info.visits[child_id]:
+                self.second_child_visit_id = child_id
+
     def backpropagate(self, reward):
         self.visit += 1
 
@@ -60,7 +69,7 @@ class MonteCarloNode:
 
         if self.parent:
             self.parent.children_info.add(self.id, reward)
-            self.parent.best_child_visit = max(self.parent.best_child_visit, self.visit)
+            self.parent.maximize_child_visit_id(self.id)
 
             if not self.parent.state.has_sticky_result:
                 # check sticky result
@@ -91,6 +100,6 @@ class MonteCarloNode:
 
         if self.parent:
             self.parent.children_info.add(self.id, VIRTUAL_LOSS * sign, sign)
-            self.parent.best_child_visit = max(self.parent.best_child_visit, self.visit)
+            self.parent.maximize_child_visit_id(self.id)
 
             self.parent.backpropagate_virtual_loss(remove_virtual_loss, stop_node)

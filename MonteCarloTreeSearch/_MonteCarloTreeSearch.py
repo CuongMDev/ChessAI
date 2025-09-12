@@ -6,7 +6,7 @@ from config.ConfigManager import ConfigManager
 from Env.GameState import GameState
 from MonteCarloTreeSearch.MonteCarloNode import MonteCarloNode
 from config.config import DIRICHLET_ALPHA, DIRICHLET_EPSILON, LABELS_MAP, MAX_THINK_LOOP, \
-    FPU_VALUE_AT_ROOT, TEMPERATURE_VISIT_OFFSET, SMART_PRUNING_FACTOR, ROOT_EXPLORATION_WEIGHT
+    FPU_VALUE_AT_ROOT, TEMPERATURE_VISIT_OFFSET, SMART_PRUNING_FACTOR, ROOT_EXPLORATION_WEIGHT, INF
 
 
 class _MonteCarloTreeSearch:
@@ -36,6 +36,9 @@ class _MonteCarloTreeSearch:
         # start_time = time.time()
         for loop in range(MAX_THINK_LOOP):
             for simulation in range(self.config.NUM_SIMULATION):
+                if not self.is_training and self.can_stop_early(self.config.NUM_SIMULATION - simulation):
+                    break
+
                 leaf = self.traverse(self.root, self.config.NUM_SIMULATION - simulation, use_smart_pruning=not self.is_training)
                 simulation_result = self.rollout(leaf)
                 leaf.backpropagate(simulation_result)
@@ -75,15 +78,15 @@ class _MonteCarloTreeSearch:
         self.root = MonteCarloNode(self.root.state.rollback())
         self.root.visit = 1
 
-    def can_overtake_bestmove(self, node, remaining_visits):
+    def can_overtake_bestmove(self, node_visit, remaining_visits):
         """
         Trả về True nếu current move còn cơ hội vượt best move,
         tức là sẽ không bị prune.
         """
         # Giả định nước yếu được dồn toàn bộ lượt còn lại
-        max_possible_visits = node.visit + remaining_visits / SMART_PRUNING_FACTOR
+        max_possible_visits = node_visit + remaining_visits / SMART_PRUNING_FACTOR
 
-        return max_possible_visits > self.root.best_child_visit
+        return max_possible_visits > self.root.children_info.visits[self.root.best_child_visit_id]
 
     def expand_first_root(self):
         policies, _ = self.get_evaluation(self.root, self.root.state.get_legal_moves())
@@ -98,13 +101,19 @@ class _MonteCarloTreeSearch:
     def get_evaluation(self, node, legal_move):
         pass
 
+    def can_stop_early(self, remaining_visits):
+        if len(self.root.children_info.visits) == 1: # force move
+            return True
+        second_child_visit = self.root.children_info.visits[self.root.second_child_visit_id] if self.root.second_child_visit_id != -1 else 0
+        return not self.can_overtake_bestmove(second_child_visit, remaining_visits)
+
     def traverse(self, start_node, remaining_visits, use_smart_pruning) -> MonteCarloNode:
         node = start_node
         if node.is_fully_expanded:
             while True:
                 node = start_node.best_child(ROOT_EXPLORATION_WEIGHT if self.is_start_position else self.config.EXPLORATION_WEIGHT)
-                if use_smart_pruning and start_node is self.root and not self.can_overtake_bestmove(node, remaining_visits):
-                    start_node.children_info.priors[node.id] = -1e9  # no visit anymore
+                if use_smart_pruning and start_node is self.root and not self.can_overtake_bestmove(node.visit, remaining_visits):
+                    start_node.children_info.priors[node.id] = -INF  # no visit anymore
                     continue  # continue find new node
                 break
 

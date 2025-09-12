@@ -1,7 +1,7 @@
 chess
 numba  
-numpy  
+numpy=1.24.4
 onnx  
-onnxruntime-gpu  
+onnxruntime-gpu==1.14.1
 scipy  
 pyinstaller 

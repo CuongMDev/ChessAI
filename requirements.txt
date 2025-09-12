@@ -7,5 +7,4 @@ scipy
 onnx 
 onnxruntime
 tqdm
-pyinstaller
 scikit-learn
