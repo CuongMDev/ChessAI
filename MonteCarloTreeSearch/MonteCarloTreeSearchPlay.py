@@ -105,9 +105,20 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
                 self.current_traversing_pos = 0
                 break
 
-        best_child, pi = self.choose_child(self.root, temperature)
-        if best_child is not None:
-            return best_child, pi
+        best_child, _ = self.choose_child(self.root, temperature)
+        if self.root.state.has_sticky_result and self.root.state.result == 1:
+            # find win move
+            for child in self.root.children:
+                if child.state and child.state.is_terminate and child.state.result == -1:
+                    return child
+
+            # find sticky win move
+            if best_child.state.has_sticky_result and best_child.state.result == -1:
+                return best_child
+            for child in self.root.children:
+                if child.state and child.state.has_sticky_result and child.state.result == -1:
+                    return child
+        return best_child
 
     def get_all_evaluation(self):
         need_evaluate_network = [i for i in range(self.current_evaluate_pos) if not self.need_evaluate_node[i].state.has_sticky_result]

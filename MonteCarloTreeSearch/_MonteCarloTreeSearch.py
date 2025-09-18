@@ -104,6 +104,9 @@ class _MonteCarloTreeSearch:
     def can_stop_early(self, remaining_visits):
         if len(self.root.children_info.visits) == 1: # force move
             return True
+        if self.root.state.has_sticky_result and self.root.state.result == 1: # win
+            return True
+
         second_child_visit = self.root.children_info.visits[self.root.second_child_visit_id] if self.root.second_child_visit_id != -1 else 0
         return not self.can_overtake_bestmove(second_child_visit, remaining_visits)
 

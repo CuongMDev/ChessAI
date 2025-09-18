@@ -52,7 +52,7 @@ class GamePlay:
                 self.claimed_draw = True
                 return None, True # Draw
 
-        best_move = self.mcts.search(self.temperature)[0]
+        best_move = self.mcts.search(self.temperature)
         self.mcts.update_mcts_root(best_move)
 
         self.step += 1
