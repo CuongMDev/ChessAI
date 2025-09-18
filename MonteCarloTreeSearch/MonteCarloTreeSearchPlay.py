@@ -34,6 +34,7 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
             node = self.root
         else:
             node = start_node
+        node.is_evaluating = False
 
         leaf = self.traverse(node, left_simulation, use_smart_pruning=use_smart_pruning)
 
@@ -43,14 +44,11 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
             self.current_traversing_pos += 1
         else:
             leaf.get_state(copy_full_stack=False, claim_draw=True)  # AI auto claim draw
-            if leaf.state.has_sticky_result:
-                node.backpropagate_virtual_loss(remove_virtual_loss=True)
-                leaf.backpropagate(leaf.state.score())
-            else:
-                leaf.is_evaluating = True
-                leaf.backpropagate_virtual_loss(remove_virtual_loss=False, stop_node=start_node)
-                self.need_evaluate_node[self.current_evaluate_pos] = leaf
-                self.current_evaluate_pos += 1
+
+            leaf.is_evaluating = True
+            leaf.backpropagate_virtual_loss(remove_virtual_loss=False, stop_node=start_node)
+            self.need_evaluate_node[self.current_evaluate_pos] = leaf
+            self.current_evaluate_pos += 1
 
     def search(self, temperature):
         if not self.root.is_fully_expanded:
@@ -78,19 +76,25 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
                     break
 
             policies, values = self.get_all_evaluation()
+            need_evaluate_network_num = 0
             for i in range(self.current_evaluate_pos):
                 node = self.need_evaluate_node[i]
-                legal_moves = node.state.get_legal_moves()
-                policy_i = policies[i, legal_moves]
-                value_i = values[i]
+                if node.state.has_sticky_result:
+                    value_i = node.state.score()
+                else:
+                    legal_moves = node.state.get_legal_moves()
+                    policy_i = policies[need_evaluate_network_num, legal_moves]
+                    value_i = values[need_evaluate_network_num]
+                    need_evaluate_network_num += 1
 
-                policy_i /= self.config.POLICY_SOFTMAX_TEMP
-                policy_i = scipy.special.softmax(policy_i, axis=-1)
+                    policy_i /= self.config.POLICY_SOFTMAX_TEMP
+                    policy_i = scipy.special.softmax(policy_i, axis=-1)
 
-                value_i = scipy.special.softmax(value_i, axis=-1)
-                value_i = value_i[2] - value_i[0]
+                    value_i = scipy.special.softmax(value_i, axis=-1)
+                    value_i = value_i[2] - value_i[0]
 
-                node.expand(policy_i, max(-1, value_i - self.config.FPU_VALUE))
+                    node.expand(policy_i, max(-1, value_i - self.config.FPU_VALUE))
+
                 node.backpropagate_virtual_loss(remove_virtual_loss=True)
                 node.backpropagate(value_i)
 
@@ -106,9 +110,10 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
             return best_child, pi
 
     def get_all_evaluation(self):
-        all_states = np.empty((self.current_evaluate_pos, FULL_INPUT_STATES), dtype=np.int64)
-        for i in range(self.current_evaluate_pos):
-            all_states[i] = self.need_evaluate_node[i].state.get_network_input()
+        need_evaluate_network = [i for i in range(self.current_evaluate_pos) if not self.need_evaluate_node[i].state.has_sticky_result]
+        all_states = np.empty((len(need_evaluate_network), FULL_INPUT_STATES), dtype=np.int64)
+        for i, need_evaluate_network_i in enumerate(need_evaluate_network):
+            all_states[i] = self.need_evaluate_node[need_evaluate_network_i].state.get_network_input()
 
         policies, values = self.session.run(None, {self.input_name: all_states})
         return policies, values
