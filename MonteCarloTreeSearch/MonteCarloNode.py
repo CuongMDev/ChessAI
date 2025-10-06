@@ -15,6 +15,7 @@ class MonteCarloNode:
         self.children_info = None
         self.visit = 0
         self.value = 0
+        self.virtual_visit = 0
         self.best_child_visit_id = 0
         self.second_child_visit_id = -1
         self.id = id
@@ -47,10 +48,10 @@ class MonteCarloNode:
 
     def on_node_sticky(self):
         self.state.has_sticky_result = True
-        self.value = self.state.result * self.visit
+        self.value = self.state.result * (self.visit - self.virtual_visit) + VIRTUAL_LOSS * self.virtual_visit
         if self.parent:
             self.parent.children_info.values[self.id] = self.value
-            self.parent.children_info.average_values[self.id] = self.state.result
+            self.parent.children_info.average_values[self.id] = self.value / self.visit
 
     def maximize_child_visit_id(self, child_id):
         if self.best_child_visit_id != child_id:
@@ -97,6 +98,7 @@ class MonteCarloNode:
         sign = -1 if remove_virtual_loss else 1
         self.visit += sign
         self.value += VIRTUAL_LOSS * sign
+        self.virtual_visit += sign
 
         if self.parent:
             self.parent.children_info.add(self.id, VIRTUAL_LOSS * sign, sign)

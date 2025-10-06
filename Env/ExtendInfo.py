@@ -21,7 +21,7 @@ def create_extend_info():
         # Chuẩn hóa giá trị về khoảng [0, 1]
         rank_plane_linear[i, :] = i / 7.0
 
-        # Plane 4: Mã hóa cột tuyến tính (Linear File Encoding)
+    # Plane 4: Mã hóa cột tuyến tính (Linear File Encoding)
     # Tương tự, giá trị tăng từ 0.0 (cột a) đến 1.0 (cột h).
     file_plane_linear = np.zeros((8, 8), dtype=np.float32)
     for i in range(8):

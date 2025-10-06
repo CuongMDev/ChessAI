@@ -84,7 +84,6 @@ def train_with_self(agent_memory, experience_memory, episode, worker=0):
                 break
 
         done = False
-        result = 0
         temperature = TEMPERATURE
 
         step_count = 0
@@ -94,18 +93,20 @@ def train_with_self(agent_memory, experience_memory, episode, worker=0):
         while not done:
             best_node, pi = monte_carlo_tree.search(temperature)
 
+            if monte_carlo_tree.root.state.has_sticky_result:
+                cache[-1][2] = -monte_carlo_tree.root.state.result
+                break
             if monte_carlo_tree.root.value / monte_carlo_tree.root.visit * 100 <= -(100 - RESIGN_PERCENTAGE) and random.randint(1, 100) > RESIGN_PLAYTHROUGH: # resign
-                result = -1
+                cache[-1][2] = 1
                 break
 
             cache.append([monte_carlo_tree.root.state.get_network_input()])
             monte_carlo_tree.update_mcts_root(best_node)
             step_count += 1
 
-            result = best_node.state.result
             done = best_node.state.is_terminate
 
-            cache[-1].extend([pi, 1])
+            cache[-1].extend([pi, 0])
 
             if best_node.state.result is not None:
                 temperature = 0
@@ -114,11 +115,8 @@ def train_with_self(agent_memory, experience_memory, episode, worker=0):
             elif step_count >= TEMPERATURE_DELAY:
                 temperature = max(0, temperature - TEMPERATURE_DECAY)
 
-        for i in range(len(cache)):
-            if (len(cache) - i) % 2:
-                cache[i][2] *= -result
-            else:
-                cache[i][2] *= result
+        for i in range(len(cache) - 2, -1, -1):
+            cache[i][2] = -cache[i + 1][2]
         experience_replay.add_experiences(cache)
 
     agent_memories.change_current_worker_count(-1)

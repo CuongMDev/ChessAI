@@ -4,6 +4,9 @@ from Env.UciMapping import UciMapping
 NUM_WORKERS = 24
 MIN_EVALUATE_COUNT = 16
 
+# Network type
+NETWORK_TYPE = 'attention' # attention/cnn
+
 # Pretrain
 USING_PRETRAIN = True
 NO_PRETRAIN_LOSER = True
@@ -71,4 +74,4 @@ EPISODE = 1000000
 host = '127.0.0.1'
 port = 12345
 
-LABELS_MAP = UciMapping()
+LABELS_MAP = UciMapping(NETWORK_TYPE)

@@ -1,13 +1,13 @@
 from torch import nn
 import torch.nn.functional as F
 
-from Agent.Network.SELayer import SELayer
+from Agent.Network.CNN.SELayer import SELayer
 from config.NetworkConfig import FILTER_CHANNEL, FILTER_SIZE
 
 
-class ResidualBlock(nn.Module):
+class ResidualCnnBlock(nn.Module):
     def __init__(self):
-        super(ResidualBlock, self).__init__()
+        super(ResidualCnnBlock, self).__init__()
 
         self.conv1 = nn.Conv2d(FILTER_CHANNEL, FILTER_CHANNEL, kernel_size=FILTER_SIZE, bias=False, padding='same')
         self.batch_norm1 = nn.BatchNorm2d(FILTER_CHANNEL)

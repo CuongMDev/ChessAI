@@ -17,10 +17,11 @@ class UciMapping:
     __numbers = ['8', '7', '6', '5', '4', '3', '2', '1']
     __promoted_to = ['q', 'r', 'b', 'n']
 
-    def __init__(self):
+    def __init__(self, network_type):
+        self.network_type = network_type
         self.labels_array = UciMapping.__create_uci_labels()
 
-        self.mask_index = np.array([UciMapping.__uci_to_mask_index(uci) for uci in self.labels_array], dtype=np.int32)
+        self.mask_index = np.array([self.__uci_to_mask_index(uci) for uci in self.labels_array], dtype=np.int32)
         idx = np.argsort(self.mask_index)
 
         self.mask_index = self.mask_index[idx]
@@ -32,41 +33,54 @@ class UciMapping:
         for v, k in enumerate(self.labels_array):
             self.dict[k] = int32(v)
 
-    @staticmethod
-    def __uci_to_mask_index(uci):
-        l1 = UciMapping.__letters.index(uci[0])
-        n1 = UciMapping.__numbers.index(uci[1])
-        l2 = UciMapping.__letters.index(uci[2])
-        n2 = UciMapping.__numbers.index(uci[3])
-        if len(uci) == 5:
-            p = UciMapping.__promoted_to.index(uci[4])
-            f = len(UciMapping.__rook_directions) * 7 + len(UciMapping.__bishop_directions) * 7 + len(UciMapping.__knight_directions) + p * 3 + l2 - l1 + 1
-        elif l1 == l2 or n1 == n2:
-            if l1 == l2:
-                dis = abs(n2 - n1)
-                dl = 0
-                dr = (n2 - n1) // dis
+    def __uci_to_mask_index(self, uci: str) -> int:
+        l1 = UciMapping.__letters.index(uci[0])   # file from
+        n1 = UciMapping.__numbers.index(uci[1])   # rank from
+        l2 = UciMapping.__letters.index(uci[2])   # file to
+        n2 = UciMapping.__numbers.index(uci[3])   # rank to
+
+        if self.network_type == 'attention':
+            from_index = n1 * BOARD_SIZE + l1
+            to_index   = n2 * BOARD_SIZE + l2
+
+            if len(uci) == 5:  # promotion
+                p = UciMapping.__promoted_to.index(uci[4])  # q,r,b,n → 0..3
+                # mapping khớp với (B, 8, 32)
+                # index = 4096 + file * 32 + p*8 + rank_to
+                return 4096 + l1 * 32 + p * 8 + l2
             else:
+                return from_index * (BOARD_SIZE**2) + to_index
+        else:
+            if len(uci) == 5:
+                p = UciMapping.__promoted_to.index(uci[4])
+                f = len(UciMapping.__rook_directions) * 7 + len(UciMapping.__bishop_directions) * 7 + len(
+                    UciMapping.__knight_directions) + p * 3 + l2 - l1 + 1
+            elif l1 == l2 or n1 == n2:
+                if l1 == l2:
+                    dis = abs(n2 - n1)
+                    dl = 0
+                    dr = (n2 - n1) // dis
+                else:
+                    dis = abs(l2 - l1)
+                    dl = (l2 - l1) // dis
+                    dr = 0
+                direction_index = UciMapping.__rook_directions.index((dl, dr))
+                f = direction_index * 7 + (dis - 1)
+
+            elif abs(l2 - l1) == abs(n2 - n1):
                 dis = abs(l2 - l1)
                 dl = (l2 - l1) // dis
-                dr = 0
-            direction_index = UciMapping.__rook_directions.index((dl, dr))
-            f = direction_index * 7 + (dis - 1)
+                dr = (n2 - n1) // dis
+                direction_index = UciMapping.__bishop_directions.index((dl, dr))
+                f = len(UciMapping.__rook_directions) * 7 + direction_index * 7 + (dis - 1)
 
-        elif abs(l2 - l1) == abs(n2 - n1):
-            dis = abs(l2 - l1)
-            dl = (l2 - l1) // dis
-            dr = (n2 - n1) // dis
-            direction_index = UciMapping.__bishop_directions.index((dl, dr))
-            f = len(UciMapping.__rook_directions) * 7 + direction_index * 7 + (dis - 1)
+            else:
+                dl = l2 - l1
+                dr = n2 - n1
+                f = len(UciMapping.__rook_directions) * 7 + len(
+                    UciMapping.__bishop_directions) * 7 + UciMapping.__knight_directions.index((dl, dr))
 
-        else:
-            dl = l2 - l1
-            dr = n2 - n1
-            f = len(UciMapping.__rook_directions) * 7 + len(
-                UciMapping.__bishop_directions) * 7 + UciMapping.__knight_directions.index((dl, dr))
-
-        return f * BOARD_SIZE ** 2 + n1 * BOARD_SIZE + l1
+            return f * BOARD_SIZE ** 2 + n1 * BOARD_SIZE + l1
 
     @staticmethod
     def __create_uci_labels():

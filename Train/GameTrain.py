@@ -114,7 +114,7 @@ class GameTrain:
             if self.time_not_update_model % UPDATE_LR_STEP == 0:
                 self.agent.scheduler.step()
 
-    def game_to_experiences(self, game):
+    def game_to_experiences(self, game, skip_first_moves=0):
         game_state = GameState()
         cache = []  # state, the best policy, reward
         for chess_move in game.mainline_moves():
@@ -132,6 +132,7 @@ class GameTrain:
                 pi[move] -= LABEL_SMOOTHING
 
             cache[-1].extend([pi, 2])  # no pretrain value
+        cache = cache[skip_first_moves:]
 
         result = game.headers.get("Result")
         if NO_PRETRAIN_LOSER and result != '1/2-1/2':
@@ -154,7 +155,7 @@ class GameTrain:
                 game = chess.pgn.read_game(pgn_file)
                 if game is None:
                     break  # Hết file
-                # if len(all_games) == 10:
+                # if len(all_games) == 5:
                 #     break
                 all_games.append(game)
 
@@ -172,8 +173,8 @@ class GameTrain:
                     self.experience_replay.reset()
 
                     if pbar.n % PRETRAIN_VAL_STEP == 0 or pbar.n == pbar.total:
-                        for i in range(PRETRAIN_SKIP_VAL_OPENING_STEP, len(val_games)):
-                            self.game_to_experiences(val_games[i])
+                        for val_game in val_games:
+                            self.game_to_experiences(val_game, PRETRAIN_SKIP_VAL_OPENING_STEP)
 
                         val_loader, _ = self.experience_replay.get_all_data(batch_size=BATCH_SIZE)
                         val_loss = self.agent.validate(val_loader)

@@ -16,7 +16,7 @@ from config.EnvConfig import FULL_INPUT_STATES
 
 class Agent:
     def __init__(self, device, num_worker=NUM_WORKERS, min_evaluate_count=MIN_EVALUATE_COUNT):
-        self.network = Network(use_channels_last=True).to(device).to(memory_format=torch.channels_last)
+        self.network = Network().to(device)
         self.memories = AgentMemories(num_workers=num_worker, min_evaluate_count=min_evaluate_count)
         self.stop_event = Event()
         self.wait_process = Thread(target=self.wait_and_evaluate, args=(self.memories.need_evaluate, self.stop_event))
@@ -128,7 +128,7 @@ class Agent:
 
     def set_jit_mode(self, mode):
         self.jit_mode = mode
-        copy_network = Network(use_fp16=USE_FP16, use_channels_last=True).to(self.device).to(memory_format=torch.channels_last)
+        copy_network = Network(use_fp16=USE_FP16).to(self.device)
         if USE_FP16:
             copy_network.half()
         copy_network.load_state_dict(self.network.state_dict())

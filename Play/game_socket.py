@@ -46,84 +46,100 @@ def send_pgn():
 
 ai_thread = None
 def ai_move_thread():
-    move_uci, done = gameplay.ai_play()
+    move_uci, done = gameplay.ai_play(need_cancel)
     if not need_cancel.is_set():
         send_ai_act(move_uci)
 
 buffer = ""
-while True:
-    chunk = conn.recv(1024).decode()
-    if not chunk:
-        break
-    buffer += chunk
+try:
+    while True:
+        chunk = conn.recv(1024).decode()
+        if not chunk:
+            break
+        buffer += chunk
 
-    while "\n" in buffer:
-        line, buffer = buffer.split("\n", 1)
-        if not line.strip():
-            continue
+        while "\n" in buffer:
+            line, buffer = buffer.split("\n", 1)
+            if not line.strip():
+                continue
 
-        try:
-            received_data = json.loads(line)
+            try:
+                received_data = json.loads(line)
 
-            if "move_uci" in received_data:
-                move_uci = received_data["move_uci"]
+                if "move_uci" in received_data:
+                    move_uci = received_data["move_uci"]
 
-                # Chơi
-                done = gameplay.play(move_uci)
-                need_cancel.clear()
+                    # Chơi
+                    done = gameplay.play(move_uci)
+                    need_cancel.clear()
 
-                if play_with_bot and not done:
-                    ai_thread = Thread(target=ai_move_thread)
-                    ai_thread.start()
-                elif not need_cancel.is_set():
+                    if play_with_bot and not done:
+                        ai_thread = Thread(target=ai_move_thread)
+                        ai_thread.start()
+                    elif not need_cancel.is_set():
+                        send_ai_act()
+
+                elif "reset" in received_data and "play_with_bot" in received_data and "human_play_first" in received_data and "fen" in received_data:
+                    need_cancel.set()
+                    if ai_thread is not None:
+                        ai_thread.join() # wait ai
+
+                    play_with_bot = received_data["play_with_bot"]
+                    human_play_first = received_data["human_play_first"]
+                    fen = received_data["fen"]
+                    gameplay.reset(fen)
+                    need_cancel.clear()
+                    send_ai_act()
+                    if gameplay.result() == '*' and play_with_bot and not human_play_first:
+                        ai_thread = Thread(target=ai_move_thread)
+                        ai_thread.start()
+                        # done = False
+                        # while not done:
+                        #     move_uci, done = gameplay.ai_play(need_cancel)
+                        #     send_ai_act(move_uci)
+
+                elif "rollback" in received_data:
+                    need_cancel.set()
+                    if ai_thread is not None and ai_thread.is_alive():
+                        ai_thread.join() # wait ai
+                        gameplay.rollback() # ai moved, so need rollback
+
+                    gameplay.rollback()
                     send_ai_act()
 
-            elif "reset" in received_data and "play_with_bot" in received_data and "human_play_first" in received_data and "fen" in received_data:
-                need_cancel.set()
-                if ai_thread is not None:
-                    ai_thread.join() # wait ai
+                elif "cancel_searching" in received_data:
+                    need_cancel.set()
 
-                play_with_bot = received_data["play_with_bot"]
-                human_play_first = received_data["human_play_first"]
-                fen = received_data["fen"]
-                gameplay.reset(fen)
-                need_cancel.clear()
-                send_ai_act()
-                if gameplay.result() == '*' and play_with_bot and not human_play_first:
-                    ai_thread = Thread(target=ai_move_thread)
-                    ai_thread.start()
-                    # done = False
-                    # while not done:
-                    #     move_uci, done = gameplay.ai_play()
-                    #     send_ai_act(move_uci)
+                elif "thinking_ability" in received_data and "search_thread" in received_data:
+                    num_simulation = received_data["thinking_ability"] * 100
+                    search_thread = received_data["search_thread"]
+                    gameplay.set_search_config(num_simulation, search_thread)
+                elif "require_pgn" in received_data:
+                    send_pgn()
 
-            elif "rollback" in received_data:
-                need_cancel.set()
-                if ai_thread is not None and ai_thread.is_alive():
-                    ai_thread.join() # wait ai
-                    gameplay.rollback() # ai moved, so need rollback
+            except Exception as e:
+                # Lấy chuỗi traceback đầy đủ
+                tb_str = traceback.format_exc()
 
-                gameplay.rollback()
-                send_ai_act()
+                # Gửi lỗi dạng JSON (có thêm thông tin traceback nếu muốn)
+                error_dict = {
+                    "error": str(e),
+                    "traceback": tb_str
+                }
+                conn.sendall(json.dumps(error_dict).encode())
 
-            elif "thinking_ability" in received_data and "search_thread" in received_data:
-                num_simulation = received_data["thinking_ability"] * 100
-                search_thread = received_data["search_thread"]
-                gameplay.set_search_config(num_simulation, search_thread)
-            elif "require_pgn" in received_data:
-                send_pgn()
+                raise e
 
-        except Exception as e:
-            # Lấy chuỗi traceback đầy đủ
-            tb_str = traceback.format_exc()
+except KeyboardInterrupt:
+    print("\nServer stopped by user")
 
-            # Gửi lỗi dạng JSON (có thêm thông tin traceback nếu muốn)
-            error_dict = {
-                "error": str(e),
-                "traceback": tb_str
-            }
-            conn.sendall(json.dumps(error_dict).encode())
-
-            raise e
-
-conn.close()
+finally:
+    print("Đóng kết nối...")
+    try:
+        conn.close()
+    except:
+        pass
+    try:
+        server.close()
+    except:
+        pass

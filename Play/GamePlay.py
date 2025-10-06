@@ -46,13 +46,13 @@ class GamePlay:
         return self.mcts.root.state.get_pgn()
 
     # Return move uci
-    def ai_play(self):
+    def ai_play(self, need_cancel):
         if self.can_claim_draw():
             if self.mcts.root.state.has_sticky_result is None or self.mcts.root.state.result != 1:
                 self.claimed_draw = True
                 return None, True # Draw
 
-        best_move = self.mcts.search(self.temperature)
+        best_move = self.mcts.search_multithread(self.temperature, need_cancel)
         self.mcts.update_mcts_root(best_move)
 
         self.step += 1

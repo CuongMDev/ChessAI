@@ -1,3 +1,4 @@
+import threading
 from typing import Optional
 
 import numpy as np
@@ -50,7 +51,7 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
             self.need_evaluate_node[self.current_evaluate_pos] = leaf
             self.current_evaluate_pos += 1
 
-    def search(self, temperature):
+    def search_multithread(self, temperature, need_cancel: threading.Event):
         if not self.root.is_fully_expanded:
             value = self.rollout(self.root, force_expand=True)
             self.root.backpropagate(value)
@@ -71,7 +72,7 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
             for i in range(new_traverse_num):
                 self.add_traversing(num_simulation, use_smart_pruning=use_smart_pruning)
                 num_simulation -= 1
-                if use_smart_pruning and self.can_stop_early(num_simulation):
+                if (use_smart_pruning and self.can_stop_early(num_simulation)) or need_cancel.is_set():
                     stop_early=True
                     break
 
@@ -105,6 +106,8 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
                 self.current_traversing_pos = 0
                 break
 
+        # print(self.root.value / self.root.visit, flush=True)
+
         best_child, _ = self.choose_child(self.root, temperature)
         if self.root.state.has_sticky_result and self.root.state.result == 1:
             # find win move
@@ -122,6 +125,9 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
 
     def get_all_evaluation(self):
         need_evaluate_network = [i for i in range(self.current_evaluate_pos) if not self.need_evaluate_node[i].state.has_sticky_result]
+        if len(need_evaluate_network) == 0:
+            return None, None
+
         all_states = np.empty((len(need_evaluate_network), FULL_INPUT_STATES), dtype=np.int64)
         for i, need_evaluate_network_i in enumerate(need_evaluate_network):
             all_states[i] = self.need_evaluate_node[need_evaluate_network_i].state.get_network_input()
