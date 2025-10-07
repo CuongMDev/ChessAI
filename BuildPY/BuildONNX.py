@@ -3,11 +3,11 @@ import sys
 import torch
 
 from Agent.Network.Network import Network
-from config.config import SAVE_MODEL_PATH, MODEL_NAME
+from config.config import SAVE_MODEL_PATH, MODEL_NAME, NETWORK_TYPE
 from config.EnvConfig import FULL_INPUT_STATES
 
 checkpoint = torch.load(SAVE_MODEL_PATH + MODEL_NAME, map_location='cpu')
-model = Network()
+model = Network(NETWORK_TYPE)
 model.load_state_dict(checkpoint['network_state_dict'])
 model.eval()
 

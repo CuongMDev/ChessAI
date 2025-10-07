@@ -10,7 +10,7 @@ from Agent.Network.Network import Network
 from config.NetworkConfig import VALIDATION_STEP, USE_FP16
 from config.config import LEARNING_RATE, SAVE_MODEL_PATH, L2_CONST, DECAY_RATE, \
     NUM_WORKERS, MIN_EVALUATE_COUNT, MODEL_NAME, MOMENTUM, LOSE_WEIGHTS, \
-    MAX_GRAD_NORM
+    MAX_GRAD_NORM, NETWORK_TYPE
 from config.EnvConfig import FULL_INPUT_STATES
 
 
@@ -128,7 +128,7 @@ class Agent:
 
     def set_jit_mode(self, mode):
         self.jit_mode = mode
-        copy_network = Network(use_fp16=USE_FP16).to(self.device)
+        copy_network = Network(NETWORK_TYPE, use_fp16=USE_FP16).to(self.device)
         if USE_FP16:
             copy_network.half()
         copy_network.load_state_dict(self.network.state_dict())

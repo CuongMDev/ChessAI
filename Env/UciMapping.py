@@ -50,7 +50,7 @@ class UciMapping:
                 return 4096 + l1 * 32 + p * 8 + l2
             else:
                 return from_index * (BOARD_SIZE**2) + to_index
-        else:
+        elif self.network_type == 'cnn':
             if len(uci) == 5:
                 p = UciMapping.__promoted_to.index(uci[4])
                 f = len(UciMapping.__rook_directions) * 7 + len(UciMapping.__bishop_directions) * 7 + len(
