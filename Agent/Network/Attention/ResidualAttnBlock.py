@@ -26,7 +26,7 @@ class ResidualAttnBlock(nn.Module):
         # FeedForward
         self.mlp = nn.Sequential(
             nn.Linear(embed_dim, dff_dim),
-            nn.SiLU(inplace=True),
+            nn.Mish(inplace=True),
             nn.Linear(dff_dim, embed_dim),
             nn.Dropout(dropout)
         )

@@ -2,8 +2,8 @@ import threading
 from typing import Optional
 
 import numpy as np
-import scipy
 
+from Utils.Utils import Utils
 from config.EnvConfig import FULL_INPUT_STATES
 from MonteCarloTreeSearch import MonteCarloNode
 from MonteCarloTreeSearch._MonteCarloTreeSearch import _MonteCarloTreeSearch
@@ -89,9 +89,9 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
                     need_evaluate_network_num += 1
 
                     policy_i /= self.config.POLICY_SOFTMAX_TEMP
-                    policy_i = scipy.special.softmax(policy_i, axis=-1)
+                    policy_i = Utils.softmax_none_axis(policy_i)
 
-                    value_i = scipy.special.softmax(value_i, axis=-1)
+                    value_i = Utils.softmax_none_axis(value_i)
                     value_i = value_i[2] - value_i[0]
 
                     node.expand(policy_i, max(-1, value_i - self.config.FPU_VALUE))
@@ -143,9 +143,9 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
         value = value.squeeze()
 
         policy /= self.config.POLICY_SOFTMAX_TEMP
-        policy = scipy.special.softmax(policy, axis=-1)
+        policy = Utils.softmax_none_axis(policy)
 
-        value = scipy.special.softmax(value, axis=-1)
+        value = Utils.softmax_none_axis(value)
         value = value[2] - value[0]
 
         return policy, value

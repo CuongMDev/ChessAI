@@ -80,6 +80,6 @@ class AttentionPolicyHead(nn.Module):
         flat_policy = torch.cat([
             attn_scores.flatten(start_dim=1),        # (B, 64*64)
             promotion_logits.flatten(start_dim=1)    # (B, 8*32)
-        ], dim=1)  # (B, 5120)
+        ], dim=1)  # (B, 4352)
 
         return flat_policy

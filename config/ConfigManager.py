@@ -11,24 +11,24 @@ class ConfigManager:
         self._settings = {
             "train": {
                 "NUM_SIMULATION": 800,
-                "EXPLORATION_WEIGHT": 1.32,
+                "EXPLORATION_WEIGHT": 1.2,
                 "TEMPERATURE_CUTOFF": 60,
                 'POLICY_SOFTMAX_TEMP': 1.45,
-                "FPU_VALUE": 0.26
+                "FPU_VALUE": 0.49
             },
             "eval": {
                 "NUM_SIMULATION": 800,
-                "EXPLORATION_WEIGHT": 1.32,
+                "EXPLORATION_WEIGHT": 1.2,
                 "TEMPERATURE_CUTOFF": 0,
-                'POLICY_SOFTMAX_TEMP': 1.4,
-                "FPU_VALUE": 0.23
+                'POLICY_SOFTMAX_TEMP': 1.45,
+                "FPU_VALUE": 0.49
             },
             "play": {
                 "NUM_SIMULATION": 200,
-                "EXPLORATION_WEIGHT": 1.32,
+                "EXPLORATION_WEIGHT": 1.2,
                 "TEMPERATURE_CUTOFF": 2,
-                'POLICY_SOFTMAX_TEMP': 1.4,
-                "FPU_VALUE": 0.23
+                'POLICY_SOFTMAX_TEMP': 1.45,
+                "FPU_VALUE": 0.49
             },
         }
 

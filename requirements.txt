@@ -3,7 +3,6 @@ numpy
 chess
 numba
 python-chess
-scipy
 onnx 
 onnxruntime
 tqdm

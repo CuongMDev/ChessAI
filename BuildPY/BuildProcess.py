@@ -23,9 +23,6 @@ spec = [
     '--exclude-module', 'torchvision',
     '--exclude-module', 'triton',
 
-    # ✅ Hidden imports
-    '--hidden-import', 'scipy.special',
-
     # ✅ File chính
     'Play/game_socket.py'
 ]

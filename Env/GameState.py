@@ -6,7 +6,6 @@ import numpy as np
 from chess import STARTING_FEN
 import chess.pgn
 
-from Env.UciMapping import get_dict_value
 from Utils.Utils import Utils
 from config.config import LABELS_MAP, TABLEBASE_PATH, BONUS_END_POSITION
 from config.EnvConfig import BOARD_SIZE, PIECES_ORDER, INPUT_PIECE_STATES, HISTORY_STATE_COUNTS
@@ -135,7 +134,7 @@ class GameState:
     def get_legal_moves(self):
         legal_chess_moves = self._env.legal_moves
         turn = self._env.turn
-        legal_moves = [get_dict_value(LABELS_MAP.dict, (chess_move if turn == chess.WHITE else self.__flip_move_vertically(chess_move)).uci()) for chess_move in legal_chess_moves]
+        legal_moves = [LABELS_MAP.get_dict_value((chess_move if turn == chess.WHITE else self.__flip_move_vertically(chess_move)).uci()) for chess_move in legal_chess_moves]
 
         return legal_moves
 
@@ -154,7 +153,7 @@ class GameState:
         chess_move = chess.Move.from_uci(move_uci)
         if turn != chess.WHITE:
             chess_move = self.__flip_move_vertically(chess_move)
-        return get_dict_value(LABELS_MAP.dict, chess_move.uci())
+        return LABELS_MAP.get_dict_value(chess_move.uci())
 
     def perform_move(self, move, copy_full_stack=False, claim_draw=False):
         new_env = self._env.copy(stack=True if copy_full_stack else self._env.halfmove_clock + 1)

@@ -1,7 +1,7 @@
 cublas64
 cublasLt64
 cudart64
-cudnn_cnn_infer64
+cudnn_cnn_infer64 (for cnn type)
 cudnn_ops_infer64
 cudnn64
 cufft64

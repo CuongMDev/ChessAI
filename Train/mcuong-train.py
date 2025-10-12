@@ -1,7 +1,5 @@
 import multiprocessing
 
-import torch
-
 from Train.GameTrain import GameTrain
 from config.NetworkConfig import DEVICE
 from config.config import EXP_MIN

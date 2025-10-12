@@ -47,6 +47,14 @@ class Utils:
         return np.int64(x)
 
     @staticmethod
+    @njit
+    def softmax_none_axis(x):
+        # Tìm max theo axis để tránh tràn số
+        x_max = np.max(x)
+        e = np.exp(x - x_max)
+        return e / np.sum(e)
+
+    @staticmethod
     def get_session(model_path):
         try:
             session = ort.InferenceSession(model_path, providers=["CUDAExecutionProvider"])

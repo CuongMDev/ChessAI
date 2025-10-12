@@ -7,7 +7,9 @@ ChessEnv/
 
 saved_model/*
 !saved_model/.gitkeep
-!saved_model/chess_checkpoint.pth
+
+pretrain_data/*
+!pretrain_data/.gitkeep
 
 Syzygy/*
 !Syzygy/.gitkeep
@@ -20,3 +22,5 @@ cuda_lib/*
 
 GameProcess/
 game_socket.spec
+
+

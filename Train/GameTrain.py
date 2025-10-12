@@ -19,7 +19,7 @@ from config.NetworkConfig import EPOCHS, VALIDATION_SPLIT
 from config.config import EPISODE, GAME_EVALUATE, GAME_TRAIN_STEP, BATCH_SIZE, WIN_UPDATE_PERCENT \
     , NUM_WORKERS, PRETRAIN_FILE, PRETRAIN_GAME_ITERATION, PRETRAIN_EPOCHS, \
     OPENING_FILE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP, USING_PRETRAIN, NO_PRETRAIN_LOSER, STOP_LEARNING_RATE, \
-    PRETRAIN_VAL_STEP, PRETRAIN_VALIDATION_SPLIT, PRETRAIN_SKIP_VAL_OPENING_STEP
+    PRETRAIN_VAL_STEP, PRETRAIN_VALIDATION_SPLIT, PRETRAIN_SKIP_OPENING_STEP
 
 
 class GameTrain:
@@ -117,29 +117,31 @@ class GameTrain:
     def game_to_experiences(self, game, skip_first_moves=0):
         game_state = GameState()
         cache = []  # state, the best policy, reward
-        for chess_move in game.mainline_moves():
-            cache.append([game_state.get_network_input()])
-            pi = np.zeros(len(LABELS_MAP.labels_array))
-            legal_moves = game_state.get_legal_moves()
-            if len(legal_moves) > 1:
-                pi[legal_moves] = 1 + LABEL_SMOOTHING / (len(legal_moves) - 1)
+        for i, chess_move in enumerate(game.mainline_moves()):
+            if i >= skip_first_moves:
+                cache.append([game_state.get_network_input()])
+                pi = np.zeros(len(LABELS_MAP.labels_array))
+                legal_moves = game_state.get_legal_moves()
+                if len(legal_moves) > 1:
+                    pi[legal_moves] = 1 + LABEL_SMOOTHING / (len(legal_moves) - 1)
 
             move = game_state.real_uci_to_move(chess_move.uci())
             game_state = game_state.perform_move(move)
 
-            pi[move] = 2
-            if len(legal_moves) > 1:
-                pi[move] -= LABEL_SMOOTHING
+            if i >= skip_first_moves:
+                pi[move] = 2
+                if len(legal_moves) > 1:
+                    pi[move] -= LABEL_SMOOTHING
 
-            cache[-1].extend([pi, 2])  # no pretrain value
-        cache = cache[skip_first_moves:]
+                cache[-1].extend([pi, 2])  # no pretrain value
 
+        white_first_turn = skip_first_moves % 2
         result = game.headers.get("Result")
         if NO_PRETRAIN_LOSER and result != '1/2-1/2':
             if result == '1-0':
-                cache = cache[0::2]
+                cache = cache[white_first_turn::2]
             else:
-                cache = cache[1::2]
+                cache = cache[(1 - white_first_turn)::2]
 
         self.experience_replay.add_experiences(cache)
 
@@ -165,7 +167,7 @@ class GameTrain:
             pbar = tqdm(range((len(train_games) + PRETRAIN_GAME_ITERATION - 1) // PRETRAIN_GAME_ITERATION), desc=f"Epoch {epoch + 1}/{PRETRAIN_EPOCHS}")
             random.shuffle(train_games)
             for current_num_game, game in enumerate(train_games):
-                self.game_to_experiences(game)
+                self.game_to_experiences(game, PRETRAIN_SKIP_OPENING_STEP)
                 if (current_num_game + 1) % PRETRAIN_GAME_ITERATION == 0 or current_num_game == len(train_games) - 1:
                     develop_agent, train_loss, _ = self.train_agent(BATCH_SIZE, 1, 0, inplace=True)
                     pbar.update(1)
@@ -174,7 +176,7 @@ class GameTrain:
 
                     if pbar.n % PRETRAIN_VAL_STEP == 0 or pbar.n == pbar.total:
                         for val_game in val_games:
-                            self.game_to_experiences(val_game, PRETRAIN_SKIP_VAL_OPENING_STEP)
+                            self.game_to_experiences(val_game, PRETRAIN_SKIP_OPENING_STEP)
 
                         val_loader, _ = self.experience_replay.get_all_data(batch_size=BATCH_SIZE)
                         val_loss = self.agent.validate(val_loader)

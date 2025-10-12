@@ -1,12 +1,5 @@
 import numpy as np
-from numba.typed import Dict
-from numba import types, njit, int32
-
-from config.EnvConfig import BOARD_SIZE
-
-@njit
-def get_dict_value(dict, key):
-    return dict[key]
+from config.EnvConfig import BOARD_SIZE, POLICY_OUT_CHANNEL
 
 class UciMapping:
     __rook_directions = [ (0, 1), (1, 0), (0, -1), (-1, 0) ]
@@ -26,12 +19,14 @@ class UciMapping:
 
         self.mask_index = self.mask_index[idx]
         self.labels_array = self.labels_array[idx]
-        self.dict = Dict.empty(
-            key_type=types.unicode_type,
-            value_type=types.int32
-        )
-        for v, k in enumerate(self.labels_array):
-            self.dict[k] = int32(v)
+
+        if self.network_type == 'attention':
+            self.dict = np.empty(4096 + 32 * 8, dtype=np.int32)
+        elif self.network_type == 'cnn':
+            self.dict = np.empty(POLICY_OUT_CHANNEL * BOARD_SIZE ** 2, dtype=np.int32)
+
+        for v, k in enumerate(self.mask_index):
+            self.dict[k] = v
 
     def __uci_to_mask_index(self, uci: str) -> int:
         l1 = UciMapping.__letters.index(uci[0])   # file from
@@ -81,6 +76,76 @@ class UciMapping:
                     UciMapping.__bishop_directions) * 7 + UciMapping.__knight_directions.index((dl, dr))
 
             return f * BOARD_SIZE ** 2 + n1 * BOARD_SIZE + l1
+
+    def __mask_index_to_uci(self, index: int) -> str:
+        if self.network_type == 'attention':
+            # --- Phong cấp ---
+            if index >= 4096:
+                temp = index - 4096
+                l1 = temp // 32
+                remain = temp % 32
+                p = remain // 8
+                l2 = remain % 8
+
+                # Với phong cấp, mặc định rank 7 -> rank 8
+                return f"{UciMapping.__letters[l1]}7{UciMapping.__letters[l2]}8{UciMapping.__promoted_to[p]}"
+
+            # --- Di chuyển bình thường ---
+            from_index = index // (BOARD_SIZE ** 2)
+            to_index = index % (BOARD_SIZE ** 2)
+            n1, l1 = divmod(from_index, BOARD_SIZE)
+            n2, l2 = divmod(to_index, BOARD_SIZE)
+            return f"{UciMapping.__letters[l1]}{UciMapping.__numbers[n1]}{UciMapping.__letters[l2]}{UciMapping.__numbers[n2]}"
+
+        elif self.network_type == 'cnn':
+            rook_dirs = UciMapping.__rook_directions
+            bishop_dirs = UciMapping.__bishop_directions
+            knight_dirs = UciMapping.__knight_directions
+
+            f, remain = divmod(index, BOARD_SIZE ** 2)
+            n1, l1 = divmod(remain, BOARD_SIZE)
+
+            num_rook = len(rook_dirs) * 7
+            num_bishop = len(bishop_dirs) * 7
+            num_knight = len(knight_dirs)
+
+            # --- Rook move ---
+            if f < num_rook:
+                direction_index = f // 7
+                dis = (f % 7) + 1
+                dl, dr = rook_dirs[direction_index]
+                l2 = l1 + dl * dis
+                n2 = n1 + dr * dis
+
+            # --- Bishop move ---
+            elif f < num_rook + num_bishop:
+                f -= num_rook
+                direction_index = f // 7
+                dis = (f % 7) + 1
+                dl, dr = bishop_dirs[direction_index]
+                l2 = l1 + dl * dis
+                n2 = n1 + dr * dis
+
+            # --- Knight move ---
+            elif f < num_rook + num_bishop + num_knight:
+                f -= num_rook + num_bishop
+                dl, dr = knight_dirs[f]
+                l2 = l1 + dl
+                n2 = n1 + dr
+
+            # --- Promotion ---
+            else:
+                f -= num_rook + num_bishop + num_knight
+                p = f // 3
+                shift = f % 3 - 1
+                l2 = l1 + shift
+                # mặc định rank 7 -> rank 8
+                return f"{UciMapping.__letters[l1]}7{UciMapping.__letters[l2]}8{UciMapping.__promoted_to[p]}"
+
+            return f"{UciMapping.__letters[l1]}{UciMapping.__numbers[n1]}{UciMapping.__letters[l2]}{UciMapping.__numbers[n2]}"
+
+    def get_dict_value(self, key):
+        return self.dict[self.__uci_to_mask_index(key)]
 
     @staticmethod
     def __create_uci_labels():

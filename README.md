@@ -3,7 +3,10 @@
 ## 🔧 Training
 
 1. Modify the configuration files in the **config** folder.
-2. Download Syzygy endgame tablebases and place all files into the **Syzygy** folder for improved training performance.
+2. Download:
+   - Syzygy endgame tablebases and place all files into the **Syzygy** folder for improved training performance.
+   - pretrain.pgn and put it into the **pretrain_data** folder if the PRETRAIN option is enabled.
+   - opening.pgn and put it into the **pretrain_data** folder for model testing.
 3. To start fresh training:
    - Remove the **checkpoint.pth** file in the **saved_model** folder.
 4. To resume training:
