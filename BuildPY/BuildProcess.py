@@ -13,6 +13,8 @@ spec = [
 
     # ✅ Thêm model ONNX
     '--add-data', f'{SAVE_MODEL_PATH + MODEL_ONNX_NAME}:saved_model',
+    # ✅ Thêm Gaviota tablebase
+    '--add-data', 'Gaviota;Gaviota'
 
     # ✅ Thêm tất cả DLL
 ] + sum([['--add-binary', dll] for dll in dlls], []) + [

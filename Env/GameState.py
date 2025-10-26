@@ -2,17 +2,21 @@ import os
 
 import chess
 import chess.syzygy
+import chess.gaviota
 import numpy as np
 from chess import STARTING_FEN
 import chess.pgn
 
 from Utils.Utils import Utils
-from config.config import LABELS_MAP, TABLEBASE_PATH, BONUS_END_POSITION
+from config.config import LABELS_MAP, TABLEBASE_PATH, BONUS_END_POSITION, GAVIOTA_PATH
 from config.EnvConfig import BOARD_SIZE, PIECES_ORDER, INPUT_PIECE_STATES, HISTORY_STATE_COUNTS
 
 if not os.path.isdir(TABLEBASE_PATH):
     os.makedirs(TABLEBASE_PATH)
-TABLEBASE = chess.syzygy.open_tablebase(TABLEBASE_PATH)
+if not os.path.isdir(GAVIOTA_PATH):
+    os.makedirs(GAVIOTA_PATH)
+SYZYGY = chess.syzygy.open_tablebase(TABLEBASE_PATH)
+GAVIOTA = chess.gaviota.open_tablebase(GAVIOTA_PATH)
 
 class GameState:
     def __init__(self, pre_env:chess.Board = None, history_state=None, fen=STARTING_FEN):
@@ -155,6 +159,28 @@ class GameState:
             chess_move = self.__flip_move_vertically(chess_move)
         return LABELS_MAP.get_dict_value(chess_move.uci())
 
+    def get_mate_policies(self):
+        self_dtm = GAVIOTA.get_dtm(self._env)
+        if self_dtm is None:
+            return None
+        self_dtm = abs(self_dtm)
+
+        self_wdl = GAVIOTA.get_wdl(self._env)
+        legal_move = list(self._env.legal_moves)
+        policies = np.zeros(len(legal_move), dtype=np.float32)
+        for i, move in enumerate(legal_move):
+            self._env.push(move)
+            dtm = GAVIOTA.get_dtm(self._env)
+            if dtm is not None and (dtm == 0 or abs(dtm) == self_dtm - 1):
+                wdl = GAVIOTA.get_wdl(self._env)
+                if wdl == -self_wdl:
+                    policies[i] = 1
+
+            self._env.pop()
+
+        policies /= np.sum(policies)
+        return policies
+
     def perform_move(self, move, copy_full_stack=False, claim_draw=False):
         new_env = self._env.copy(stack=True if copy_full_stack else self._env.halfmove_clock + 1)
 
@@ -166,15 +192,11 @@ class GameState:
         new_env.push(chess_move)
 
         new_state = GameState(new_env, history_state=GameState.inverse_history(self.all_board_states))
-        wdl = TABLEBASE.get_wdl(new_state._env)
+        wdl = GAVIOTA.get_wdl(new_state._env)
         if wdl is not None:
-            if new_state._env.halfmove_clock + abs(TABLEBASE.probe_dtz(new_state._env)) < 100:
-                wdl = wdl // 2
-                new_state.result = wdl
-                if wdl == 1:
-                    claim_draw = False # can win
-            else:
-                new_state.result = 0
+            new_state.result = wdl
+            if wdl == 1:
+                claim_draw = False # can win
             new_state.has_sticky_result = True
 
         result = new_state._env.result(claim_draw=claim_draw)

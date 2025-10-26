@@ -1,3 +1,4 @@
+import gc
 import os
 from threading import Thread, Event
 
@@ -12,7 +13,6 @@ from config.config import LEARNING_RATE, SAVE_MODEL_PATH, L2_CONST, DECAY_RATE, 
     NUM_WORKERS, MIN_EVALUATE_COUNT, MODEL_NAME, MOMENTUM, LOSE_WEIGHTS, \
     MAX_GRAD_NORM, NETWORK_TYPE
 from config.EnvConfig import FULL_INPUT_STATES
-
 
 class Agent:
     def __init__(self, device, num_worker=NUM_WORKERS, min_evaluate_count=MIN_EVALUATE_COUNT):
@@ -82,6 +82,9 @@ class Agent:
             train_loss.append(train_epoch_loss)
 
         return train_loss, val_loss  # Trả về giá trị loss cuối cùng (float)
+
+    def __del__(self):
+        torch.cuda.empty_cache()
 
     def validate(self, val_loader):
         self.network.eval()

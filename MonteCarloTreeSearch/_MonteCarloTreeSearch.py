@@ -33,6 +33,10 @@ class _MonteCarloTreeSearch:
             value = self.rollout(self.root, force_expand=True)
             self.root.backpropagate(value)
 
+        mate_child = self.choose_mate_child()
+        if mate_child is not None:
+            return mate_child
+
         # start_time = time.time()
         for loop in range(MAX_THINK_LOOP):
             for simulation in range(self.config.NUM_SIMULATION):
@@ -148,6 +152,18 @@ class _MonteCarloTreeSearch:
             value = self.expand(node)
 
         return value
+
+    def choose_mate_child(self):
+        mate_policies = self.root.state.get_mate_policies()
+        if mate_policies is None:
+            return None
+
+        pi = np.zeros(len(LABELS_MAP.labels_array))
+        for i, child in enumerate(self.root.children):
+            pi[child.last_move] = mate_policies[i] + 1 # Lưu thông tin mask
+
+        best_child = np.random.choice(self.root.children, p=mate_policies)
+        return best_child, pi
 
     def choose_child(self, node, temperature, check_kld=False):
         visits = node.children_info.visits

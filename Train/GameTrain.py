@@ -12,6 +12,7 @@ from sklearn.model_selection import train_test_split
 from tqdm.auto import tqdm
 
 from Agent.Agent import Agent
+from Agent.CustomLearningRate import LinearWarmupDecayScheduler
 from Agent.ExperienceReplay import ExperienceReplay
 from Env.GameState import GameState
 from Train.TrainProcess import play_with_agent, train_with_self
@@ -19,7 +20,8 @@ from config.NetworkConfig import EPOCHS, VALIDATION_SPLIT
 from config.config import EPISODE, GAME_EVALUATE, GAME_TRAIN_STEP, BATCH_SIZE, WIN_UPDATE_PERCENT \
     , NUM_WORKERS, PRETRAIN_FILE, PRETRAIN_GAME_ITERATION, PRETRAIN_EPOCHS, \
     OPENING_FILE, LABEL_SMOOTHING, LABELS_MAP, UPDATE_LR_STEP, USING_PRETRAIN, NO_PRETRAIN_LOSER, STOP_LEARNING_RATE, \
-    PRETRAIN_VAL_STEP, PRETRAIN_VALIDATION_SPLIT, PRETRAIN_SKIP_OPENING_STEP
+    PRETRAIN_VAL_STEP, PRETRAIN_VALIDATION_SPLIT, PRETRAIN_SKIP_OPENING_STEP, LEARNING_RATE, DECAY_RATE, \
+    PRETRAIN_WARM_UP_RATIO
 
 
 class GameTrain:
@@ -98,7 +100,7 @@ class GameTrain:
         self.update_elo(develop_agent, win_rate)
         print('elo: ', develop_agent.elo)
 
-        print(f'win game: {win_game} - loss game: {loss_game} - draw_game: {draw_game}, win_rate: {win_rate}', flush=True)
+        print(f'win game: {win_game} - loss game: {loss_game} - draw_game: {draw_game}, win_rate: {win_rate}')
         if win_rate > WIN_UPDATE_PERCENT:
             self.agent.on_stop()
             self.agent = develop_agent
@@ -162,16 +164,26 @@ class GameTrain:
                 all_games.append(game)
 
         train_games, val_games = train_test_split(all_games, test_size=PRETRAIN_VALIDATION_SPLIT, random_state=42)
+        epoch_step = (len(train_games) + PRETRAIN_GAME_ITERATION - 1) // PRETRAIN_GAME_ITERATION
+        pretrain_scheduler = LinearWarmupDecayScheduler(lr_max=LEARNING_RATE,
+                                                        lr_min=LEARNING_RATE * DECAY_RATE,
+                                                        total_steps=epoch_step * PRETRAIN_EPOCHS,
+                                                        warmup_ratio=PRETRAIN_WARM_UP_RATIO)
+
         pre_val_loss = 1e9
         for epoch in range(PRETRAIN_EPOCHS):
-            pbar = tqdm(range((len(train_games) + PRETRAIN_GAME_ITERATION - 1) // PRETRAIN_GAME_ITERATION), desc=f"Epoch {epoch + 1}/{PRETRAIN_EPOCHS}")
+            pbar = tqdm(range(epoch_step), desc=f"Epoch {epoch + 1}/{PRETRAIN_EPOCHS}")
             random.shuffle(train_games)
             for current_num_game, game in enumerate(train_games):
                 self.game_to_experiences(game, PRETRAIN_SKIP_OPENING_STEP)
                 if (current_num_game + 1) % PRETRAIN_GAME_ITERATION == 0 or current_num_game == len(train_games) - 1:
+                    current_lr = pretrain_scheduler.step()
+                    for g in self.agent.optimizer.param_groups:
+                        g['lr'] = current_lr
+
                     develop_agent, train_loss, _ = self.train_agent(BATCH_SIZE, 1, 0, inplace=True)
                     pbar.update(1)
-                    pbar.set_postfix(loss=train_loss[-1])
+                    pbar.set_postfix(loss=train_loss[-1], lr=current_lr)
                     self.experience_replay.reset()
 
                     if pbar.n % PRETRAIN_VAL_STEP == 0 or pbar.n == pbar.total:

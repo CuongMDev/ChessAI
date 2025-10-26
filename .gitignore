@@ -23,4 +23,5 @@ cuda_lib/*
 GameProcess/
 game_socket.spec
 
-
+Gaviota/*
+!Gaviota/.gitkeep

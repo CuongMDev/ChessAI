@@ -56,6 +56,11 @@ class MonteCarloTreeSearchPlay(_MonteCarloTreeSearch):
             value = self.rollout(self.root, force_expand=True)
             self.root.backpropagate(value)
 
+        mate_policies = self.root.state.get_mate_policies()
+        if mate_policies is not None:
+            best_child = np.random.choice(self.root.children, p=mate_policies)
+            return best_child
+
         use_smart_pruning = temperature == 0
 
         num_simulation = self.config.NUM_SIMULATION

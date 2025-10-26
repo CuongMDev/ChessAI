@@ -53,6 +53,9 @@ class ExperienceReplay(Dataset):
     def add_experience(self, sample: list):
         if len(sample) != 3:
             raise Exception('Invalid sample')
+        if sample[0] is None:
+            return
+
         current_index = self.index.value
         self.index.value = (self.index.value + 1) % EXP_MAX
         self.size.value = min(self.size.value + 1, EXP_MAX)

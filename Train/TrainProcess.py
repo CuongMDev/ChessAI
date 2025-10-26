@@ -1,5 +1,7 @@
 import random
 
+import numpy as np
+
 from Env.GameState import GameState
 from MonteCarloTreeSearch.MonteCarloNode import MonteCarloNode
 from config.ConfigManager import ConfigManager
@@ -93,30 +95,35 @@ def train_with_self(agent_memory, experience_memory, episode, worker=0):
         while not done:
             best_node, pi = monte_carlo_tree.search(temperature)
 
-            if monte_carlo_tree.root.state.has_sticky_result:
-                cache[-1][2] = -monte_carlo_tree.root.state.result
-                break
-            if monte_carlo_tree.root.value / monte_carlo_tree.root.visit * 100 <= -(100 - RESIGN_PERCENTAGE) and random.randint(1, 100) > RESIGN_PLAYTHROUGH: # resign
-                cache[-1][2] = 1
-                break
+            current_network_input = monte_carlo_tree.root.state.get_network_input()
+            reward = -2 # unspecified
 
-            cache.append([monte_carlo_tree.root.state.get_network_input()])
+            # if win, code will go into this
+            if monte_carlo_tree.root.state.has_sticky_result: # train this for better checkmate
+                reward = monte_carlo_tree.root.state.result
+            elif abs(monte_carlo_tree.root.value / monte_carlo_tree.root.visit * 100 - 100) <= RESIGN_PERCENTAGE: # no train this because model is too confident
+                reward = np.sign(monte_carlo_tree.root.value)
+                if reward == -cache[-1][2]:
+                    current_network_input = None # no train this state if previous reward was correct
+
+            cache.append([current_network_input])
             monte_carlo_tree.update_mcts_root(best_node)
             step_count += 1
 
             done = best_node.state.is_terminate
 
-            cache[-1].extend([pi, 0])
+            cache[-1].extend([pi, reward])
 
-            if best_node.state.result is not None:
-                temperature = 0
-            elif step_count >= config.TEMPERATURE_CUTOFF:
+            if step_count >= config.TEMPERATURE_CUTOFF:
                 temperature = TEMPERATURE_ENDGAME
             elif step_count >= TEMPERATURE_DELAY:
                 temperature = max(0, temperature - TEMPERATURE_DECAY)
 
+        if cache[-1][2] == -2:
+            cache[-1][2] = 0 # draw
         for i in range(len(cache) - 2, -1, -1):
-            cache[i][2] = -cache[i + 1][2]
+            if cache[i][2] == -2:
+                cache[i][2] = -cache[i + 1][2]
         experience_replay.add_experiences(cache)
 
     agent_memories.change_current_worker_count(-1)

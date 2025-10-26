@@ -12,7 +12,7 @@ class ConfigManager:
             "train": {
                 "NUM_SIMULATION": 800,
                 "EXPLORATION_WEIGHT": 1.2,
-                "TEMPERATURE_CUTOFF": 60,
+                "TEMPERATURE_CUTOFF": 40,
                 'POLICY_SOFTMAX_TEMP': 1.45,
                 "FPU_VALUE": 0.49
             },
